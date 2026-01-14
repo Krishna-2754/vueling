@@ -10,7 +10,7 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
-        /* FONTS: Nunito (Vueling Roundness) + Inter (Default) + Space Mono (Tickets) */
+        /* FONTS: Nunito (Vueling) + Inter (Default) + Space Mono (Tickets) */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=Nunito:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap');
 
         body {
@@ -29,28 +29,23 @@
             position: relative;
         }
         
-        /* The "Yellow Widget" */
         .vueling-widget {
-            background-color: #FFCC00; /* Vueling Yellow */
-            border-radius: 1.5rem; /* Soft rounded corners */
+            background-color: #FFCC00;
+            border-radius: 1.5rem;
             box-shadow: 0 10px 40px rgba(0,0,0,0.15);
         }
 
-        /* Inputs inside the yellow widget */
         .vueling-input-group {
             background-color: white;
-            border-radius: 0.75rem; /* Rounded inputs */
+            border-radius: 0.75rem;
             transition: transform 0.2s;
         }
-        .vueling-input-group:hover {
-            transform: translateY(-2px);
-        }
+        .vueling-input-group:hover { transform: translateY(-2px); }
 
-        /* The Search Button */
         .vueling-search-btn {
             background-color: white;
             color: black;
-            border-radius: 9999px; /* Pill shape */
+            border-radius: 9999px;
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 0.05em;
@@ -75,6 +70,10 @@
             to { opacity: 1; transform: translateY(0); }
         }
         .ticket-font { font-family: 'Space Mono', monospace; }
+        .custom-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #1e1e1e; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
+        
         .loader {
             border: 4px solid #f3f3f3; border-top: 4px solid #FFCC00;
             border-radius: 50%; width: 40px; height: 40px;
@@ -114,7 +113,6 @@
             }
         };
 
-        // ... [CONSTANTS: ORIGIN_OPTIONS, DESTINATION_OPTIONS, HOTEL_OPTIONS, LANGUAGE_OPTIONS remain the same]
         const ORIGIN_OPTIONS = [
             { code: "MNL", name: "Manila (MNL)" },
             { code: "SIN", name: "Singapore (SIN)" },
@@ -167,15 +165,39 @@
             const [orderId, setOrderId] = useState("");
             const [language, setLanguage] = useState("en");
             const [paymentUrl, setPaymentUrl] = useState("");
+            const [failureReason, setFailureReason] = useState({ status: "", code: "", message: "" });
             const [category, setCategory] = useState('flight');
             const [selectedHotel, setSelectedHotel] = useState("SAVOY");
+            const [successActiveTab, setSuccessActiveTab] = useState('ticket');
             const [search, setSearch] = useState({ from: 'MNL', to: 'SUG', date: '2026-01-01', currency: 'USD' });
+            
+            // Logs
+            const [apiLogs, setApiLogs] = useState(() => {
+                const saved = sessionStorage.getItem('flight_demo_logs');
+                return saved ? JSON.parse(saved) : [];
+            });
+
+            const logApiCall = (endpoint, method, req, res) => {
+                const newLog = { id: Date.now() + Math.random(), timestamp: new Date().toLocaleTimeString(), endpoint, method, request: req, response: res };
+                setApiLogs(prevLogs => {
+                    const updatedLogs = [...prevLogs, newLog];
+                    sessionStorage.setItem('flight_demo_logs', JSON.stringify(updatedLogs));
+                    return updatedLogs;
+                });
+            };
 
             const startFresh = (config) => {
+                sessionStorage.removeItem('flight_demo_logs');
+                setApiLogs([]);
                 setAirline(config);
                 setView('airline');
                 setLoadingStage("Authenticating...");
-                setTimeout(() => { setNavToken("JWT_MOCK"); setLoadingStage(""); }, 800);
+                // Mock Token
+                setTimeout(() => {
+                    logApiCall('/api/nsk/v2/token', 'POST', {}, { token: "JWT_MOCK" });
+                    setNavToken("JWT_MOCK"); 
+                    setLoadingStage(""); 
+                }, 800);
             };
 
             const handleRestart = () => {
@@ -209,6 +231,7 @@
                         body: JSON.stringify(sessionReq)
                     });
                     const data = await res.json();
+                    logApiCall('https://sandbox.juspay.in/session', 'POST', data.sentPayload, { payment_link: data.url });
                     setPaymentUrl(data.url);
                     setView('payment');
                 } catch(e) {
@@ -216,6 +239,83 @@
                     alert("Failed to create session.");
                 }
                 setLoadingStage("");
+            };
+
+            useEffect(() => {
+                const params = new URLSearchParams(window.location.search);
+                if (params.get('status') === 'success') {
+                    const savedState = JSON.parse(sessionStorage.getItem('juspay_demo_state'));
+                    if (savedState) {
+                        setSearch(savedState.search);
+                        setCategory(savedState.category);
+                        setSelectedHotel(savedState.selectedHotel);
+                    }
+                    const pnrFromUrl = params.get('pnr') || "PENDING";
+                    const orderIdFromUrl = params.get('order_id');
+                    const airlineName = params.get('airline');
+                    
+                    const matched = Object.values(AIRLINE_CONFIGS).find(a => a.name === airlineName);
+                    if(matched) setAirline(matched);
+
+                    setPnr(pnrFromUrl);
+                    setOrderId(orderIdFromUrl);
+                    verifyAndProceed(pnrFromUrl, orderIdFromUrl, airlineName);
+                }
+            }, []);
+
+            const verifyAndProceed = async (pnrVal, orderIdVal, airlineName) => {
+                setLoadingStage("Verifying Payment Status...");
+                try {
+                    const res = await fetch('/check-order-status', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ order_id: orderIdVal })
+                    });
+                    const data = await res.json();
+                    logApiCall('https://sandbox.juspay.in/ecr/orders/...', 'GET', { order_id: orderIdVal }, data);
+
+                    if (data.status === "CHARGED" || data.status === "AUTHORIZED" || data.status === "TO_BE_CHARGED" || data.status === "PARTIAL_CHARGED") {
+                        handleSuccessChain(airlineName, pnrVal, orderIdVal);
+                    } else {
+                        setLoadingStage("");
+                        setFailureReason({
+                            status: data.status || "UNKNOWN",
+                            code: data.resp_code || "PAYMENT_FAILED",
+                            message: data.resp_message || "Payment could not be processed"
+                        });
+                        setView('failure');
+                    }
+                } catch (error) {
+                    console.error("Verification Error", error);
+                    setLoadingStage("");
+                    setFailureReason({ status: "API_ERROR", code: "CONN_ERR", message: "Could not verify payment status" });
+                    setView('failure');
+                }
+            };
+
+            const handleSuccessChain = async (name, confirmedPnr, currentOrderId) => {
+                const matched = Object.values(AIRLINE_CONFIGS).find(a => a.name === name);
+                setAirline(matched || AIRLINE_CONFIGS.cebu);
+                setLoadingStage("Syncing Booking...");
+                
+                // Mocking calls for demo speed
+                await new Promise(r => setTimeout(r, 500)); 
+                logApiCall('/api/nsk/v3/booking', 'POST', {}, {status: 'success'});
+
+                if (currentOrderId) {
+                    setLoadingStage("Confirming Payment...");
+                    const fulfillReq = { order_id: currentOrderId, pnr: confirmedPnr };
+                    fetch('/fulfill-order', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(fulfillReq)
+                    })
+                    .then(res => res.json())
+                    .then(data => { logApiCall('https://sandbox.juspay.in/orders/.../fulfillment', 'POST', fulfillReq, data); })
+                    .catch(err => console.error("Fulfillment trigger failed", err));
+                }
+                setLoadingStage("");
+                setView('success');
             };
 
             const getDisplayPrice = () => {
@@ -233,13 +333,8 @@
             // --- HEADER COMPONENT ---
             const Header = () => {
                 if (airline.id === 'vueling') {
-                    // Placeholder for Vueling Header PNG
                     return (
                         <div className="w-full bg-white relative z-50 sticky top-0 shadow-sm min-h-[70px] flex items-center justify-center overflow-hidden">
-                             {/* INSTRUCTIONS: 
-                                Replace './vueling-header.png' with your actual file path.
-                                Ensure the PNG is roughly 1400px wide for best results.
-                             */}
                              <img 
                                 src="./vueling-header.png" 
                                 alt="Vueling Header" 
@@ -253,7 +348,6 @@
                         </div>
                     );
                 }
-                // Fallback / Cebu Header
                 return (
                     <div className="w-full bg-white relative z-50 p-4 shadow-sm">
                         <img src="./cebu.png" className="h-10" />
@@ -289,18 +383,137 @@
                 </div>
             );
             
-            if (view === 'success') return (
-                <div className="min-h-screen flex flex-col items-center bg-slate-50 text-center animate-in font-sans">
+            // --- FAILURE ---
+             if (view === 'failure') return (
+                <div className="min-h-screen flex flex-col items-center bg-slate-50 text-center animate-in">
                     <div className="pt-12 pb-8 px-4 w-full bg-white shadow-sm mb-6">
-                        <div className="w-16 h-16 bg-green-500 text-white rounded-full flex items-center justify-center text-3xl shadow-lg mx-auto mb-4">✓</div>
-                        <h1 className="text-3xl font-black text-slate-900 uppercase">Booking Confirmed</h1>
-                        <p className="text-slate-500 font-medium mt-2">PNR: <span className="font-mono font-bold text-black">{pnr}</span></p>
-                        <button onClick={handleRestart} className="mt-8 px-8 py-3 bg-slate-900 text-white rounded-full font-bold uppercase text-xs tracking-widest hover:bg-slate-800 transition-all shadow-lg">Book Another</button>
+                        <div className="w-16 h-16 bg-red-500 text-white rounded-full flex items-center justify-center text-3xl shadow-lg mx-auto mb-4">✕</div>
+                        <h1 className="text-3xl font-black text-slate-900 uppercase">Booking Failed</h1>
+
+                        <div className="mt-4 bg-red-50 p-4 rounded-xl border border-red-100 max-w-lg mx-auto">
+                            <div className="flex justify-between items-center border-b border-red-200 pb-2 mb-2">
+                                <span className="text-xs text-red-500 font-bold uppercase">Payment Status</span>
+                                <span className="text-sm text-red-700 font-black">{failureReason.status}</span>
+                            </div>
+                            <div className="text-left">
+                                <span className="text-xs text-red-500 font-bold uppercase block mb-1">Reason</span>
+                                <p className="text-sm text-slate-600 font-medium">{failureReason.message}</p>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-center mt-8 gap-4">
+                            <button onClick={handleRestart} className="px-8 py-3 bg-slate-900 text-white rounded-full font-bold uppercase text-xs tracking-widest hover:bg-slate-800 transition-all shadow-lg">Try Again</button>
+                            <button onClick={() => setSuccessActiveTab('logs')} className="px-6 py-3 border border-slate-300 text-slate-600 rounded-full font-bold uppercase text-xs tracking-widest hover:bg-slate-100 transition-all">View Logs</button>
+                        </div>
                     </div>
                 </div>
             );
 
-            // --- MAIN AIRLINE UI ---
+            // --- SUCCESS VIEW (RESTORED) ---
+            if (view === 'success') return (
+                <div className={`min-h-screen flex flex-col items-center bg-slate-50 text-center animate-in ${airline.isVueling ? 'font-[Nunito]' : 'font-sans'}`}>
+                    <Header />
+                    
+                    <div className="pt-12 pb-8 px-4 w-full bg-white shadow-sm mb-6">
+                        <div className="w-16 h-16 bg-green-500 text-white rounded-full flex items-center justify-center text-3xl shadow-lg mx-auto mb-4">✓</div>
+                        <h1 className="text-3xl font-black text-slate-900 uppercase">Booking Confirmed</h1>
+                        <p className="text-slate-500 font-medium">Thank you for flying with us.</p>
+                        
+                        <div className="flex justify-center mt-8 gap-8 border-b border-slate-200 max-w-4xl mx-auto">
+                            <button onClick={() => setSuccessActiveTab('ticket')} className={`pb-3 px-4 text-sm font-bold uppercase tracking-widest transition-all ${successActiveTab === 'ticket' ? (airline.id === 'vueling' ? 'text-[#FFCC00] border-b-4 border-[#FFCC00]' : 'text-blue-600 border-b-2 border-blue-600') : 'text-slate-400 hover:text-slate-600'}`}>Ticket Details</button>
+                            <button onClick={() => setSuccessActiveTab('logs')} className={`pb-3 px-4 text-sm font-bold uppercase tracking-widest transition-all ${successActiveTab === 'logs' ? (airline.id === 'vueling' ? 'text-[#FFCC00] border-b-4 border-[#FFCC00]' : 'text-blue-600 border-b-2 border-blue-600') : 'text-slate-400 hover:text-slate-600'}`}>All Logs</button>
+                        </div>
+                    </div>
+
+                    <div className="w-full max-w-6xl px-4 pb-20">
+                        {successActiveTab === 'ticket' && (
+                            <div className="animate-in">
+                                <div className="w-full max-w-4xl mx-auto bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row relative">
+                                    <div className="flex-1 p-8 md:p-10 text-left border-r-2 border-dashed border-slate-200 relative">
+                                        <div className="flex justify-between items-center mb-8">
+                                            <img src={airline?.logo} style={{ height: '30px' }} onError={(e)=>e.target.style.display='none'} />
+                                            <span className="bg-slate-100 text-slate-600 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Economy</span>
+                                        </div>
+                                        <div className="flex justify-between items-end mb-8">
+                                             {category === 'hotel' ? (
+                                                <>
+                                                    <div>
+                                                        <div className="text-3xl font-black text-slate-900 mb-1">{HOTEL_OPTIONS.find(h => h.id === selectedHotel)?.name}</div>
+                                                        <div className="text-xs text-slate-400 font-bold uppercase tracking-widest">Hotel Reservation</div>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <div>
+                                                        <div className="text-5xl font-black text-slate-900 mb-1">{search.from}</div>
+                                                        <div className="text-xs text-slate-400 font-bold uppercase tracking-widest">Departure</div>
+                                                    </div>
+                                                    <div className="mb-3 text-slate-300 text-2xl">✈</div>
+                                                    <div className="text-right">
+                                                        <div className="text-5xl font-black text-slate-900 mb-1">{search.to}</div>
+                                                        <div className="text-xs text-slate-400 font-bold uppercase tracking-widest">Arrival</div>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-8 pt-6 border-t border-slate-100">
+                                            {/* Row 1 */}
+                                            <div>
+                                                <div className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1">Date</div>
+                                                <div className="font-bold text-slate-800">{new Date(search.date).toDateString()}</div>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1">Payment ID</div>
+                                                <div className="font-bold text-slate-800">{orderId || "PENDING"}</div>
+                                            </div>
+                                        </div>
+
+                                         <div className="mt-8 pt-6 border-t border-slate-100 flex justify-end">
+                                            <button onClick={handleRestart} className={`flex items-center gap-2 text-xs font-black uppercase tracking-widest ${airline.id === 'vueling' ? 'text-[#FFCC00] hover:text-[#e6b800]' : 'text-blue-600 hover:text-blue-800'} transition-colors`}>
+                                                <span>+ Book Another Flight</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="w-full md:w-80 bg-slate-900 text-white p-8 flex flex-col items-center justify-center text-center relative">
+                                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Booking Reference</div>
+                                        <div className={`text-5xl font-bold tracking-wider mb-8 text-white ${airline.id === 'vueling' ? 'text-[#FFCC00]' : ''} ticket-font`}>{pnr}</div>
+                                        <div className="bg-white p-2 rounded-xl inline-block shadow-lg">
+                                            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${pnr}`} className="w-32 h-32" alt="Boarding QR" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {successActiveTab === 'logs' && (
+                            <div className="animate-in w-full text-left">
+                                <div className="bg-[#1e1e1e] rounded-xl overflow-hidden shadow-2xl log-container border border-slate-800 flex flex-col h-[60vh]">
+                                    <div className="bg-[#252526] px-4 py-2 border-b border-white/5 text-[10px] text-slate-400 uppercase font-bold tracking-widest shrink-0">
+                                        Client API Events
+                                    </div>
+                                    <div className="p-0 overflow-y-auto flex-1 custom-scroll bg-[#1e1e1e]">
+                                        {apiLogs.map((log, index) => (
+                                            <div key={log.id} className={`log-entry border-b border-white/5 p-4 ${index % 2 === 0 ? 'bg-transparent' : 'bg-white/[0.02]'}`}>
+                                                <div className="flex items-center gap-3 mb-3">
+                                                    <span className="text-slate-500 text-[10px] font-mono">[{log.timestamp}]</span>
+                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${log.method === 'POST' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-orange-500/10 text-orange-400 border border-orange-500/20'}`}>
+                                                        {log.method}
+                                                    </span>
+                                                    <span className="text-green-400 font-mono text-xs">{log.endpoint}</span>
+                                                </div>
+                                                <pre className="text-[10px] text-slate-300 bg-black/30 p-3 rounded-md overflow-x-auto border border-white/5 font-mono leading-relaxed">{JSON.stringify(log.request, null, 2)}</pre>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+
+            // --- MAIN AIRLINE SEARCH (Vueling Style) ---
             return (
                 <div className={`min-h-screen flex flex-col ${airline.isVueling ? 'font-[Nunito]' : 'font-sans'} animate-in`}>
                     {loadingStage && <LoadingOverlay />}
@@ -308,11 +521,9 @@
                     <Header />
 
                     <div className={`${airline.hero} flex-1 relative flex flex-col items-center justify-center`}>
-                        
-                        {/* WIDGET CONTAINER */}
                         <div className="w-full max-w-5xl px-4 relative z-10 -mt-20">
                             
-                            {/* Tabs - Centered above widget */}
+                            {/* Tabs */}
                             <div className="flex justify-center mb-6">
                                 <div className="bg-white rounded-full shadow-xl p-1.5 flex gap-1">
                                     <button 
@@ -330,19 +541,15 @@
                                 </div>
                             </div>
 
-                            {/* Main Search Widget - YELLOW BOX */}
+                            {/* Widget */}
                             <div className={`${airline.id === 'vueling' ? 'vueling-widget p-6' : 'bg-white rounded-3xl shadow-2xl p-8'}`}>
                                 <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-                                    
-                                    {/* Input: From */}
                                     <div className={`md:col-span-3 h-14 px-4 flex flex-col justify-center border border-slate-200 ${airline.id === 'vueling' ? 'vueling-input-group' : 'bg-slate-50 rounded-lg'}`}>
                                         <label className="text-[9px] uppercase font-bold text-slate-400 block">Origin</label>
                                         <select className="w-full bg-transparent font-bold text-sm text-slate-800 focus:outline-none" value={search.from} onChange={(e) => setSearch({...search, from: e.target.value})}>
                                             {ORIGIN_OPTIONS.map(o => <option key={o.code} value={o.code}>{o.name}</option>)}
                                         </select>
                                     </div>
-
-                                    {/* Input: To */}
                                     <div className={`md:col-span-3 h-14 px-4 flex flex-col justify-center border border-slate-200 ${airline.id === 'vueling' ? 'vueling-input-group' : 'bg-slate-50 rounded-lg'}`}>
                                         <label className="text-[9px] uppercase font-bold text-slate-400 block">Destination</label>
                                         {category === 'flight' ? (
@@ -355,22 +562,16 @@
                                             </select>
                                         )}
                                     </div>
-
-                                    {/* Input: Date */}
                                     <div className={`md:col-span-2 h-14 px-4 flex flex-col justify-center border border-slate-200 ${airline.id === 'vueling' ? 'vueling-input-group' : 'bg-slate-50 rounded-lg'}`}>
                                         <label className="text-[9px] uppercase font-bold text-slate-400 block">Date</label>
                                         <input type="date" className="w-full bg-transparent font-bold text-sm text-slate-800 focus:outline-none" value={search.date} onChange={(e) => setSearch({...search, date: e.target.value})} />
                                     </div>
-
-                                    {/* Input: Language */}
                                     <div className={`md:col-span-2 h-14 px-4 flex flex-col justify-center border border-slate-200 ${airline.id === 'vueling' ? 'vueling-input-group' : 'bg-slate-50 rounded-lg'}`}>
                                         <label className="text-[9px] uppercase font-bold text-slate-400 block">Language</label>
                                         <select className="w-full bg-transparent font-bold text-sm text-slate-800 focus:outline-none" value={language} onChange={(e) => setLanguage(e.target.value)}>
                                             {LANGUAGE_OPTIONS.map(l => <option key={l.code} value={l.code}>{l.name}</option>)}
                                         </select>
                                     </div>
-
-                                    {/* Search Button */}
                                     <div className="md:col-span-2">
                                         <button 
                                             onClick={handleSearch}
@@ -379,7 +580,6 @@
                                             Search Flights
                                         </button>
                                     </div>
-
                                 </div>
                             </div>
 
@@ -387,7 +587,6 @@
                             {isSearched && (
                                 <div className="mt-8 animate-in">
                                     <div className="bg-white rounded-[2rem] shadow-2xl p-8 border border-slate-100 flex flex-col md:flex-row items-center justify-between">
-                                        
                                         <div className="flex items-center gap-6 text-left">
                                             <div>
                                                 <div className="text-3xl font-black text-slate-900 flex items-center gap-3">
@@ -402,7 +601,6 @@
                                                 </div>
                                             </div>
                                         </div>
-
                                         <div className="text-right mt-6 md:mt-0">
                                             <div className="text-4xl font-black text-slate-900 italic mb-3">{getDisplayPrice()}</div>
                                             <button 
