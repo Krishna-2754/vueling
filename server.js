@@ -323,7 +323,7 @@ app.post('/create-session', async (req, res) => {
             "customer_email": "test@gmail.com",
             "customer_phone": "9999999999",
             "mobile_country_code": "91",
-            "payment_page_client_id": "cebu",
+            "payment_page_client_id": "vueling",
             "action": "paymentPage",
             "return_url": dynamicReturnUrl,
             "merchant_view_url": "",
