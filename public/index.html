@@ -57,12 +57,6 @@
             box-shadow: 0 6px 20px rgba(0,0,0,0.15);
         }
 
-        /* --- CEBU STYLES --- */
-        .cebu-hero {
-            background: url('https://images.unsplash.com/photo-1518391846015-55a9cc003b25?auto=format&fit=crop&w=1600&q=80') center/cover;
-            min-height: 80vh;
-        }
-
         /* --- ANIMATIONS & UTILS --- */
         .animate-in { animation: fadeIn 0.6s ease-out forwards; }
         @keyframes fadeIn {
@@ -88,18 +82,8 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
+        // ONLY Vueling Config is needed now, but keeping structure for safety
         const AIRLINE_CONFIGS = {
-            cebu: { 
-                id: 'cebu', 
-                name: 'Cebu Pacific', 
-                logo: './cebu.png', 
-                primary: '#FFF000', 
-                accent: '#00AEEF', 
-                hero: 'cebu-hero', 
-                logoH: '85px', 
-                font: 'font-sans',
-                isVueling: false 
-            },
             vueling: { 
                 id: 'vueling', 
                 name: 'Vueling', 
@@ -151,6 +135,7 @@
         const LANGUAGE_OPTIONS = [{ code: "en", name: "English" }, { code: "ja", name: "Japanese" }, { code: "ko", name: "Korean" }, { code: "zh", name: "Mandarin" }];
 
         function App() {
+            // Iframe Breaker logic
             if (window.self !== window.top) {
                 const innerParams = new URLSearchParams(window.location.search);
                 if (innerParams.get('status')) { window.top.location.href = window.location.href; return null; }
@@ -159,17 +144,27 @@
             const urlParams = new URLSearchParams(window.location.search);
             const isReturningSuccess = urlParams.get('status') === 'success';
 
-            const [view, setView] = useState(isReturningSuccess ? 'processing' : 'launcher');
-            const [airline, setAirline] = useState(() => {
-                if(isReturningSuccess) {
-                    const name = urlParams.get('airline');
-                    const matched = Object.values(AIRLINE_CONFIGS).find(a => a.name === name);
-                    return matched || AIRLINE_CONFIGS.cebu;
-                }
-                return null;
-            });
+            // --- DIRECT LOAD VUELING LOGIC ---
+            // If returning from success, use 'processing', otherwise go straight to 'airline' (Search Page)
+            const [view, setView] = useState(isReturningSuccess ? 'processing' : 'airline');
+            
+            // Always default to Vueling
+            const [airline, setAirline] = useState(AIRLINE_CONFIGS.vueling);
 
             const [loadingStage, setLoadingStage] = useState(isReturningSuccess ? "Verifying Payment..." : "");
+            
+            // Auto-fetch token on load
+            useEffect(() => {
+                if (!isReturningSuccess) {
+                    setLoadingStage("Authenticating...");
+                    // Simulate Token Fetch
+                    setTimeout(() => {
+                        setNavToken("JWT_MOCK_TOKEN");
+                        setLoadingStage(""); 
+                    }, 500);
+                }
+            }, []);
+
             const [navToken, setNavToken] = useState("");
             const [isSearched, setIsSearched] = useState(false);
             const [pnr, setPnr] = useState("");
@@ -207,23 +202,10 @@
                 });
             };
 
-            const startFresh = (config) => {
-                sessionStorage.removeItem('flight_demo_logs');
-                setApiLogs([]);
-                setAirline(config);
-                setView('airline');
-                setLoadingStage("Authenticating...");
-                setTimeout(() => {
-                    logApiCall('/api/nsk/v2/token', 'POST', {}, { token: "JWT_MOCK" });
-                    setNavToken("JWT_MOCK"); 
-                    setLoadingStage(""); 
-                }, 800);
-            };
-
             const handleRestart = () => {
                 window.history.pushState({}, document.title, window.location.pathname);
                 setIsSearched(false);
-                setAirline(AIRLINE_CONFIGS.cebu);
+                setAirline(AIRLINE_CONFIGS.vueling);
                 setView('airline');
                 setPnr("");
                 setOrderId("");
@@ -231,7 +213,7 @@
 
             const handleSearch = async () => {
                 setLoadingStage("Searching...");
-                setTimeout(() => { setIsSearched(true); setLoadingStage(""); }, 1000);
+                setTimeout(() => { setIsSearched(true); setLoadingStage(""); }, 800);
             };
 
             const handlePay = async () => {
@@ -272,14 +254,11 @@
                     }
                     const pnrFromUrl = params.get('pnr') || "PENDING";
                     const orderIdFromUrl = params.get('order_id');
-                    const airlineName = params.get('airline');
                     
-                    const matched = Object.values(AIRLINE_CONFIGS).find(a => a.name === airlineName);
-                    if(matched) setAirline(matched);
-
+                    setAirline(AIRLINE_CONFIGS.vueling);
                     setPnr(pnrFromUrl);
                     setOrderId(orderIdFromUrl);
-                    verifyAndProceed(pnrFromUrl, orderIdFromUrl, airlineName);
+                    verifyAndProceed(pnrFromUrl, orderIdFromUrl, 'Vueling');
                 }
             }, []);
 
@@ -314,8 +293,6 @@
             };
 
             const handleSuccessChain = async (name, confirmedPnr, currentOrderId) => {
-                const matched = Object.values(AIRLINE_CONFIGS).find(a => a.name === name);
-                setAirline(matched || AIRLINE_CONFIGS.cebu);
                 setLoadingStage("Syncing Booking...");
                 
                 await new Promise(r => setTimeout(r, 500)); 
@@ -367,45 +344,22 @@
             );
 
             // --- HEADER COMPONENT ---
-            const Header = () => {
-                if (airline.id === 'vueling') {
-                    return (
-                        <div className="w-full bg-white relative z-50 sticky top-0 shadow-sm min-h-[70px] flex items-center justify-center overflow-hidden">
-                             <img 
-                                src="./vueling-header2.png" 
-                                alt="Vueling Header" 
-                                className="w-full max-w-[1920px] object-cover object-top"
-                                style={{ minHeight: '60px' }}
-                                onError={(e) => {
-                                    e.target.style.display = 'none';
-                                    e.target.parentElement.innerHTML = '<div class="text-sm font-bold text-gray-400 p-4">HEADER PLACEHOLDER: Add vueling-header.png</div>';
-                                }}
-                            />
-                        </div>
-                    );
-                }
-                return (
-                    <div className="w-full bg-white relative z-50 p-4 shadow-sm">
-                        <img src="./cebu.png" className="h-10" />
-                    </div>
-                );
-            };
-
-            // --- VIEWS ---
-
-            if (view === 'launcher') return (
-                <div className="h-screen flex flex-col items-center justify-center p-6 text-white bg-slate-950 font-sans">
-                    <h1 className="text-6xl font-black italic mb-16 text-transparent bg-clip-text bg-gradient-to-r from-white to-blue-400">JUSPAY AERO</h1>
-                    <div className="flex gap-10">
-                        {Object.values(AIRLINE_CONFIGS).map(a => (
-                            <button key={a.id} onClick={() => startFresh(a)} className="bg-white/5 border border-white/10 p-12 rounded-[2.5rem] hover:bg-white/10 flex flex-col items-center group transition-all backdrop-blur-md">
-                                <img src={a.logo} style={{ height: a.logoH }} className="mb-8 object-contain" />
-                                <div className="px-6 py-2 rounded-full border border-blue-500/30 text-[10px] font-bold uppercase text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-all">Launch Demo</div>
-                            </button>
-                        ))}
-                    </div>
+            const Header = () => (
+                <div className="w-full bg-white relative z-50 sticky top-0 shadow-sm min-h-[70px] flex items-center justify-center overflow-hidden">
+                        <img 
+                        src="./vueling-header2.png" 
+                        alt="Vueling Header" 
+                        className="w-full max-w-[1920px] object-cover object-top"
+                        style={{ minHeight: '60px' }}
+                        onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.parentElement.innerHTML = '<div class="text-sm font-bold text-gray-400 p-4">HEADER PLACEHOLDER: Add vueling-header.png</div>';
+                        }}
+                    />
                 </div>
             );
+
+            // --- VIEWS ---
 
             if (view === 'processing') return <div className="min-h-screen flex flex-col items-center justify-center bg-white relative"><LoadingOverlay /></div>;
 
@@ -445,7 +399,7 @@
                 </div>
             );
 
-            // --- SUCCESS VIEW (FULL LOGS RESTORED) ---
+            // --- SUCCESS VIEW (FULL LOGS) ---
             if (view === 'success') return (
                 <div className={`min-h-screen flex flex-col items-center bg-slate-50 text-center animate-in ${airline.isVueling ? 'font-[Nunito]' : 'font-sans'}`}>
                     <Header />
@@ -456,8 +410,8 @@
                         <p className="text-slate-500 font-medium">Thank you for flying with us.</p>
                         
                         <div className="flex justify-center mt-8 gap-8 border-b border-slate-200 max-w-4xl mx-auto">
-                            <button onClick={() => setSuccessActiveTab('ticket')} className={`pb-3 px-4 text-sm font-bold uppercase tracking-widest transition-all ${successActiveTab === 'ticket' ? (airline.id === 'vueling' ? 'text-[#FFCC00] border-b-4 border-[#FFCC00]' : 'text-blue-600 border-b-2 border-blue-600') : 'text-slate-400 hover:text-slate-600'}`}>Ticket Details</button>
-                            <button onClick={() => setSuccessActiveTab('logs')} className={`pb-3 px-4 text-sm font-bold uppercase tracking-widest transition-all ${successActiveTab === 'logs' ? (airline.id === 'vueling' ? 'text-[#FFCC00] border-b-4 border-[#FFCC00]' : 'text-blue-600 border-b-2 border-blue-600') : 'text-slate-400 hover:text-slate-600'}`}>All Logs</button>
+                            <button onClick={() => setSuccessActiveTab('ticket')} className={`pb-3 px-4 text-sm font-bold uppercase tracking-widest transition-all ${successActiveTab === 'ticket' ? 'text-[#FFCC00] border-b-4 border-[#FFCC00]' : 'text-slate-400 hover:text-slate-600'}`}>Ticket Details</button>
+                            <button onClick={() => setSuccessActiveTab('logs')} className={`pb-3 px-4 text-sm font-bold uppercase tracking-widest transition-all ${successActiveTab === 'logs' ? 'text-[#FFCC00] border-b-4 border-[#FFCC00]' : 'text-slate-400 hover:text-slate-600'}`}>All Logs</button>
                         </div>
                     </div>
 
@@ -506,14 +460,14 @@
                                         </div>
 
                                          <div className="mt-8 pt-6 border-t border-slate-100 flex justify-end">
-                                            <button onClick={handleRestart} className={`flex items-center gap-2 text-xs font-black uppercase tracking-widest ${airline.id === 'vueling' ? 'text-[#FFCC00] hover:text-[#e6b800]' : 'text-blue-600 hover:text-blue-800'} transition-colors`}>
+                                            <button onClick={handleRestart} className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#FFCC00] hover:text-[#e6b800] transition-colors">
                                                 <span>+ Book Another Flight</span>
                                             </button>
                                         </div>
                                     </div>
                                     <div className="w-full md:w-80 bg-slate-900 text-white p-8 flex flex-col items-center justify-center text-center relative">
                                         <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Booking Reference</div>
-                                        <div className={`text-5xl font-bold tracking-wider mb-8 text-white ${airline.id === 'vueling' ? 'text-[#FFCC00]' : ''} ticket-font`}>{pnr}</div>
+                                        <div className="text-5xl font-bold tracking-wider mb-8 text-[#FFCC00] ticket-font">{pnr}</div>
                                         <div className="bg-white p-2 rounded-xl inline-block shadow-lg">
                                             <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${pnr}`} className="w-32 h-32" alt="Boarding QR" />
                                         </div>
@@ -522,7 +476,6 @@
                             </div>
                         )}
 
-                        {/* FULL LOGS RESTORED HERE */}
                         {successActiveTab === 'logs' && (
                             <div className="animate-in w-full text-left">
                                 <div className="bg-[#1e1e1e] rounded-xl overflow-hidden shadow-2xl log-container border border-slate-800 flex flex-col h-[85vh]">
