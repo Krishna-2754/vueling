@@ -10,11 +10,11 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
-        /* FONTS: Nunito (Vueling) + Inter (Default) + Space Mono (Tickets) */
+        /* FONTS: Nunito (Vueling Roundness) + Inter (Default) + Space Mono (Tickets) */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=Nunito:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap');
 
         body {
-            font-family: 'Nunito', sans-serif; /* Default to Vueling font */
+            font-family: 'Nunito', sans-serif;
             transition: all 0.3s ease;
             overflow-x: hidden;
             background-color: #f4f4f4;
@@ -23,38 +23,43 @@
 
         /* --- VUELING BRANDING --- */
         .vueling-hero {
-            /* Bright Spanish Coast/City Vibe */
-            background: url('https://images.unsplash.com/photo-1534353436294-0dbd4bdac845?auto=format&fit=crop&w=1920&q=80') center/cover no-repeat;
-            min-height: 600px;
+            /* Bright Blue Sky / Clouds - Typical Airline Vibe */
+            background: url('https://images.unsplash.com/photo-1506012787146-f92b2d7d6d96?q=80&w=2069&auto=format&fit=crop') center/cover no-repeat;
+            min-height: 700px;
             position: relative;
         }
         
-        /* The signature Vueling Grey Overlay for text readability if needed */
-        .vueling-hero::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0) 100%);
-            pointer-events: none;
+        /* The "Yellow Widget" */
+        .vueling-widget {
+            background-color: #FFCC00; /* Vueling Yellow */
+            border-radius: 1.5rem; /* Soft rounded corners */
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
         }
 
-        .vueling-yellow-bg { background-color: #FFCC00; color: black; }
-        .vueling-yellow-text { color: #FFCC00; }
-        .vueling-btn {
-            background-color: #FFCC00;
+        /* Inputs inside the yellow widget */
+        .vueling-input-group {
+            background-color: white;
+            border-radius: 0.75rem; /* Rounded inputs */
+            transition: transform 0.2s;
+        }
+        .vueling-input-group:hover {
+            transform: translateY(-2px);
+        }
+
+        /* The Search Button */
+        .vueling-search-btn {
+            background-color: white;
             color: black;
+            border-radius: 9999px; /* Pill shape */
             font-weight: 800;
-            transition: transform 0.2s, background-color 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: all 0.2s;
         }
-        .vueling-btn:hover {
-            background-color: #e6b800;
-            transform: translateY(-1px);
-        }
-
-        .vueling-card {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+        .vueling-search-btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
         }
 
         /* --- CEBU STYLES --- */
@@ -99,7 +104,7 @@
             vueling: { 
                 id: 'vueling', 
                 name: 'Vueling', 
-                logo: './vueling.png', // Ensure you have this image
+                logo: './vueling.png', 
                 primary: '#FFCC00', 
                 accent: '#5E6061', 
                 hero: 'vueling-hero', 
@@ -109,6 +114,7 @@
             }
         };
 
+        // ... [CONSTANTS: ORIGIN_OPTIONS, DESTINATION_OPTIONS, HOTEL_OPTIONS, LANGUAGE_OPTIONS remain the same]
         const ORIGIN_OPTIONS = [
             { code: "MNL", name: "Manila (MNL)" },
             { code: "SIN", name: "Singapore (SIN)" },
@@ -136,7 +142,6 @@
         const LANGUAGE_OPTIONS = [{ code: "en", name: "English" }, { code: "ja", name: "Japanese" }, { code: "ko", name: "Korean" }, { code: "zh", name: "Mandarin" }];
 
         function App() {
-            // Iframe Breaker
             if (window.self !== window.top) {
                 const innerParams = new URLSearchParams(window.location.search);
                 if (innerParams.get('status')) { window.top.location.href = window.location.href; return null; }
@@ -165,17 +170,12 @@
             const [category, setCategory] = useState('flight');
             const [selectedHotel, setSelectedHotel] = useState("SAVOY");
             const [search, setSearch] = useState({ from: 'MNL', to: 'SUG', date: '2026-01-01', currency: 'USD' });
-            
-            // --- Helper Functions ---
+
             const startFresh = (config) => {
                 setAirline(config);
                 setView('airline');
                 setLoadingStage("Authenticating...");
-                // Mock Token Call
-                setTimeout(() => {
-                    setNavToken("JWT_MOCK_TOKEN");
-                    setLoadingStage("");
-                }, 800);
+                setTimeout(() => { setNavToken("JWT_MOCK"); setLoadingStage(""); }, 800);
             };
 
             const handleRestart = () => {
@@ -194,11 +194,8 @@
 
             const handlePay = async () => {
                 setLoadingStage("Securing Session...");
-                
-                // --- Save State ---
                 sessionStorage.setItem('juspay_demo_state', JSON.stringify({ search, category, selectedHotel }));
-
-                // --- CREATE SESSION (Call your server) ---
+                
                 const sessionReq = {
                     category, hotelId: selectedHotel,
                     navToken, airlineName: airline.name,
@@ -216,41 +213,15 @@
                     setView('payment');
                 } catch(e) {
                     console.error("Session creation failed", e);
-                    alert("Failed to create session. Check console.");
+                    alert("Failed to create session.");
                 }
                 setLoadingStage("");
-            };
-
-            // --- Status Check Logic (Simplified for Demo) ---
-            useEffect(() => {
-                if (urlParams.get('status') === 'success') {
-                    const pnrFromUrl = urlParams.get('pnr') || "PENDING";
-                    const orderIdFromUrl = urlParams.get('order_id');
-                    setPnr(pnrFromUrl);
-                    setOrderId(orderIdFromUrl);
-
-                    // Mock Verification
-                    setTimeout(() => {
-                        handleSuccessChain();
-                    }, 1500);
-                }
-            }, []);
-
-            const handleSuccessChain = () => {
-                setLoadingStage("Finalizing Booking...");
-                setTimeout(() => {
-                    setLoadingStage("");
-                    setView('success');
-                }, 1500);
             };
 
             const getDisplayPrice = () => {
                 if(category === 'hotel') return '$150';
                 return '$190';
             };
-
-
-            // --- COMPONENTS ---
 
             const LoadingOverlay = () => (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex flex-col items-center justify-center text-white animate-in">
@@ -261,41 +232,32 @@
 
             // --- HEADER COMPONENT ---
             const Header = () => {
-                if (airline.id === 'cebu') {
-                     return (
-                         <div className="w-full bg-white relative z-50">
-                             <img src="./cebu.png" className="h-12 ml-6 my-4" />
+                if (airline.id === 'vueling') {
+                    // Placeholder for Vueling Header PNG
+                    return (
+                        <div className="w-full bg-white relative z-50 sticky top-0 shadow-sm min-h-[70px] flex items-center justify-center overflow-hidden">
+                             {/* INSTRUCTIONS: 
+                                Replace './vueling-header.png' with your actual file path.
+                                Ensure the PNG is roughly 1400px wide for best results.
+                             */}
+                             <img 
+                                src="./vueling-header.png" 
+                                alt="Vueling Header" 
+                                className="w-full max-w-[1920px] object-cover object-top"
+                                style={{ minHeight: '60px' }}
+                                onError={(e) => {
+                                    e.target.style.display = 'none';
+                                    e.target.parentElement.innerHTML = '<div class="text-sm font-bold text-gray-400 p-4">HEADER PLACEHOLDER: Add vueling-header.png</div>';
+                                }}
+                            />
                         </div>
-                     )
+                    );
                 }
-                // VUELING HEADER (Exact Replica)
+                // Fallback / Cebu Header
                 return (
-                    <header className="w-full bg-white h-[70px] flex items-center justify-between px-6 lg:px-12 shadow-sm sticky top-0 z-50">
-                        {/* Left: Logo & Nav */}
-                        <div className="flex items-center gap-8">
-                            {/* Replaced img with text if logo missing, or use actual logo */}
-                            <img src={airline.logo} alt="Vueling" className="h-8" onError={(e) => e.target.style.display='none'} />
-                            <span className="text-2xl font-black tracking-tight text-slate-800" style={{display: airline.logo ? 'none' : 'block'}}>vueling<span className="text-[#FFCC00]">.</span></span>
-                            
-                            <nav className="hidden lg:flex items-center gap-6 text-sm font-bold text-slate-600">
-                                <a href="#" className="hover:text-black transition-colors">Book your flight</a>
-                                <a href="#" className="hover:text-black transition-colors">Check-in</a>
-                                <a href="#" className="hover:text-black transition-colors">Flight Status</a>
-                                <a href="#" className="hover:text-black transition-colors">Your Booking</a>
-                            </nav>
-                        </div>
-
-                        {/* Right: Tools & Login */}
-                        <div className="flex items-center gap-6">
-                            <div className="hidden md:flex items-center gap-4 text-sm font-bold text-slate-500">
-                                <span>EN/EUR</span>
-                                <span>Contact</span>
-                            </div>
-                            <button className="bg-[#FFCC00] hover:bg-[#e6b800] text-black text-xs font-extrabold px-6 py-2.5 rounded-full transition-colors uppercase tracking-wide">
-                                Log In
-                            </button>
-                        </div>
-                    </header>
+                    <div className="w-full bg-white relative z-50 p-4 shadow-sm">
+                        <img src="./cebu.png" className="h-10" />
+                    </div>
                 );
             };
 
@@ -315,18 +277,12 @@
                 </div>
             );
 
-            if (view === 'processing') return (
-                <div className="min-h-screen flex flex-col items-center justify-center bg-white relative">
-                    <LoadingOverlay />
-                </div>
-            );
+            if (view === 'processing') return <div className="min-h-screen flex flex-col items-center justify-center bg-white relative"><LoadingOverlay /></div>;
 
             if (view === 'payment') return (
                 <div className="w-full h-screen bg-slate-100 relative font-sans">
                      <div className="absolute top-0 left-0 w-full h-14 bg-white/90 backdrop-blur border-b border-slate-200 flex items-center justify-between px-6 z-10">
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-slate-500 uppercase">Secured by Juspay</span>
-                        </div>
+                        <div className="flex items-center gap-2"><span className="text-xs font-bold text-slate-500 uppercase">Secured by Juspay</span></div>
                         <button onClick={() => setView('airline')} className="text-xs font-black text-red-500 hover:text-red-700 uppercase tracking-widest border border-red-200 px-4 py-2 rounded-full hover:bg-red-50 transition-colors">Cancel Payment</button>
                     </div>
                     <iframe src={paymentUrl} className="w-full h-full border-0 pt-14" title="Payment Page" />
@@ -339,93 +295,100 @@
                         <div className="w-16 h-16 bg-green-500 text-white rounded-full flex items-center justify-center text-3xl shadow-lg mx-auto mb-4">✓</div>
                         <h1 className="text-3xl font-black text-slate-900 uppercase">Booking Confirmed</h1>
                         <p className="text-slate-500 font-medium mt-2">PNR: <span className="font-mono font-bold text-black">{pnr}</span></p>
-                         <button onClick={handleRestart} className="mt-8 px-8 py-3 bg-slate-900 text-white rounded-full font-bold uppercase text-xs tracking-widest hover:bg-slate-800 transition-all shadow-lg">Book Another</button>
+                        <button onClick={handleRestart} className="mt-8 px-8 py-3 bg-slate-900 text-white rounded-full font-bold uppercase text-xs tracking-widest hover:bg-slate-800 transition-all shadow-lg">Book Another</button>
                     </div>
                 </div>
             );
 
-            // --- AIRLINE SEARCH VIEW ---
+            // --- MAIN AIRLINE UI ---
             return (
                 <div className={`min-h-screen flex flex-col ${airline.isVueling ? 'font-[Nunito]' : 'font-sans'} animate-in`}>
                     {loadingStage && <LoadingOverlay />}
                     
                     <Header />
 
-                    <div className={`${airline.hero} flex-1 relative`}>
-                        {/* Centered Search Widget */}
-                        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-5xl px-4">
+                    <div className={`${airline.hero} flex-1 relative flex flex-col items-center justify-center`}>
+                        
+                        {/* WIDGET CONTAINER */}
+                        <div className="w-full max-w-5xl px-4 relative z-10 -mt-20">
                             
-                            {/* Main Search Box */}
-                            <div className={`${airline.id === 'vueling' ? 'vueling-card' : 'bg-white rounded-3xl shadow-2xl'} p-2`}>
-                                
-                                {/* Tabs */}
-                                <div className="flex justify-center -mt-8 mb-4">
-                                    <div className="bg-white rounded-full shadow-lg p-1.5 flex gap-1">
-                                        <button 
-                                            onClick={() => setCategory('flight')}
-                                            className={`px-8 py-2.5 rounded-full text-sm font-bold transition-all ${category === 'flight' ? (airline.id === 'vueling' ? 'bg-[#FFCC00] text-black' : 'bg-blue-500 text-white') : 'text-slate-500 hover:bg-slate-50'}`}
-                                        >
-                                            Flights
-                                        </button>
-                                        <button 
-                                            onClick={() => setCategory('hotel')}
-                                            className={`px-8 py-2.5 rounded-full text-sm font-bold transition-all ${category === 'hotel' ? (airline.id === 'vueling' ? 'bg-[#FFCC00] text-black' : 'bg-blue-500 text-white') : 'text-slate-500 hover:bg-slate-50'}`}
-                                        >
-                                            Hotels
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Form Body */}
-                                <div className="p-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-                                        
-                                        {/* Inputs */}
-                                        <div className="md:col-span-3 bg-slate-50 rounded-lg border border-slate-200 px-4 py-2 hover:border-slate-300 transition-colors">
-                                            <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Origin</label>
-                                            <select className="w-full bg-transparent font-bold text-slate-800 focus:outline-none" value={search.from} onChange={(e) => setSearch({...search, from: e.target.value})}>
-                                                {ORIGIN_OPTIONS.map(o => <option key={o.code} value={o.code}>{o.name}</option>)}
-                                            </select>
-                                        </div>
-
-                                        <div className="md:col-span-3 bg-slate-50 rounded-lg border border-slate-200 px-4 py-2 hover:border-slate-300 transition-colors">
-                                             <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Destination</label>
-                                             {category === 'flight' ? (
-                                                <select className="w-full bg-transparent font-bold text-slate-800 focus:outline-none" value={search.to} onChange={(e) => setSearch({...search, to: e.target.value})}>
-                                                    {DESTINATION_OPTIONS.map(o => <option key={o.code} value={o.code}>{o.name}</option>)}
-                                                </select>
-                                             ) : (
-                                                <select className="w-full bg-transparent font-bold text-slate-800 focus:outline-none" value={selectedHotel} onChange={(e) => setSelectedHotel(e.target.value)}>
-                                                    {HOTEL_OPTIONS.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
-                                                </select>
-                                             )}
-                                        </div>
-
-                                        <div className="md:col-span-3 bg-slate-50 rounded-lg border border-slate-200 px-4 py-2 hover:border-slate-300 transition-colors">
-                                            <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Date</label>
-                                            <input type="date" className="w-full bg-transparent font-bold text-slate-800 focus:outline-none" value={search.date} onChange={(e) => setSearch({...search, date: e.target.value})} />
-                                        </div>
-
-                                        {/* Search Button */}
-                                        <div className="md:col-span-3">
-                                            <button 
-                                                onClick={handleSearch}
-                                                className={`w-full h-[58px] rounded-lg font-black text-sm uppercase tracking-wider shadow-lg hover:shadow-xl transition-all active:scale-95 ${airline.id === 'vueling' ? 'vueling-btn' : 'bg-[#00AEEF] text-white'}`}
-                                            >
-                                                Search
-                                            </button>
-                                        </div>
-                                    </div>
+                            {/* Tabs - Centered above widget */}
+                            <div className="flex justify-center mb-6">
+                                <div className="bg-white rounded-full shadow-xl p-1.5 flex gap-1">
+                                    <button 
+                                        onClick={() => setCategory('flight')}
+                                        className={`px-6 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${category === 'flight' ? 'bg-[#FFCC00] text-black shadow-sm' : 'text-slate-500 hover:bg-slate-50'}`}
+                                    >
+                                        Flights
+                                    </button>
+                                    <button 
+                                        onClick={() => setCategory('hotel')}
+                                        className={`px-6 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${category === 'hotel' ? 'bg-[#FFCC00] text-black shadow-sm' : 'text-slate-500 hover:bg-slate-50'}`}
+                                    >
+                                        Hotels
+                                    </button>
                                 </div>
                             </div>
 
-                             {/* Results Card (Appears below) */}
+                            {/* Main Search Widget - YELLOW BOX */}
+                            <div className={`${airline.id === 'vueling' ? 'vueling-widget p-6' : 'bg-white rounded-3xl shadow-2xl p-8'}`}>
+                                <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+                                    
+                                    {/* Input: From */}
+                                    <div className={`md:col-span-3 h-14 px-4 flex flex-col justify-center border border-slate-200 ${airline.id === 'vueling' ? 'vueling-input-group' : 'bg-slate-50 rounded-lg'}`}>
+                                        <label className="text-[9px] uppercase font-bold text-slate-400 block">Origin</label>
+                                        <select className="w-full bg-transparent font-bold text-sm text-slate-800 focus:outline-none" value={search.from} onChange={(e) => setSearch({...search, from: e.target.value})}>
+                                            {ORIGIN_OPTIONS.map(o => <option key={o.code} value={o.code}>{o.name}</option>)}
+                                        </select>
+                                    </div>
+
+                                    {/* Input: To */}
+                                    <div className={`md:col-span-3 h-14 px-4 flex flex-col justify-center border border-slate-200 ${airline.id === 'vueling' ? 'vueling-input-group' : 'bg-slate-50 rounded-lg'}`}>
+                                        <label className="text-[9px] uppercase font-bold text-slate-400 block">Destination</label>
+                                        {category === 'flight' ? (
+                                            <select className="w-full bg-transparent font-bold text-sm text-slate-800 focus:outline-none" value={search.to} onChange={(e) => setSearch({...search, to: e.target.value})}>
+                                                {DESTINATION_OPTIONS.map(o => <option key={o.code} value={o.code}>{o.name}</option>)}
+                                            </select>
+                                        ) : (
+                                            <select className="w-full bg-transparent font-bold text-sm text-slate-800 focus:outline-none" value={selectedHotel} onChange={(e) => setSelectedHotel(e.target.value)}>
+                                                {HOTEL_OPTIONS.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+                                            </select>
+                                        )}
+                                    </div>
+
+                                    {/* Input: Date */}
+                                    <div className={`md:col-span-2 h-14 px-4 flex flex-col justify-center border border-slate-200 ${airline.id === 'vueling' ? 'vueling-input-group' : 'bg-slate-50 rounded-lg'}`}>
+                                        <label className="text-[9px] uppercase font-bold text-slate-400 block">Date</label>
+                                        <input type="date" className="w-full bg-transparent font-bold text-sm text-slate-800 focus:outline-none" value={search.date} onChange={(e) => setSearch({...search, date: e.target.value})} />
+                                    </div>
+
+                                    {/* Input: Language */}
+                                    <div className={`md:col-span-2 h-14 px-4 flex flex-col justify-center border border-slate-200 ${airline.id === 'vueling' ? 'vueling-input-group' : 'bg-slate-50 rounded-lg'}`}>
+                                        <label className="text-[9px] uppercase font-bold text-slate-400 block">Language</label>
+                                        <select className="w-full bg-transparent font-bold text-sm text-slate-800 focus:outline-none" value={language} onChange={(e) => setLanguage(e.target.value)}>
+                                            {LANGUAGE_OPTIONS.map(l => <option key={l.code} value={l.code}>{l.name}</option>)}
+                                        </select>
+                                    </div>
+
+                                    {/* Search Button */}
+                                    <div className="md:col-span-2">
+                                        <button 
+                                            onClick={handleSearch}
+                                            className={`w-full h-14 text-sm ${airline.id === 'vueling' ? 'vueling-search-btn' : 'bg-[#00AEEF] text-white rounded-lg font-black uppercase'}`}
+                                        >
+                                            Search Flights
+                                        </button>
+                                    </div>
+
+                                </div>
+                            </div>
+
+                            {/* Results Card */}
                             {isSearched && (
                                 <div className="mt-8 animate-in">
-                                    <div className="bg-white rounded-2xl shadow-2xl p-8 border border-slate-100 flex flex-col md:flex-row items-center justify-between relative overflow-hidden">
-                                        <div className={`absolute top-0 left-0 w-2 h-full ${airline.id === 'vueling' ? 'bg-[#FFCC00]' : 'bg-[#00AEEF]'}`}></div>
+                                    <div className="bg-white rounded-[2rem] shadow-2xl p-8 border border-slate-100 flex flex-col md:flex-row items-center justify-between">
                                         
-                                        <div className="flex items-center gap-8 mb-6 md:mb-0">
+                                        <div className="flex items-center gap-6 text-left">
                                             <div>
                                                 <div className="text-3xl font-black text-slate-900 flex items-center gap-3">
                                                     {category === 'flight' ? (
@@ -435,19 +398,16 @@
                                                     )}
                                                 </div>
                                                 <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">
-                                                    Direct Flight • {new Date(search.date).toLocaleDateString()}
+                                                    Thu Jan 01 2026 | Non-Stop
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div className="text-right flex items-center gap-8">
-                                            <div>
-                                                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Total Price</div>
-                                                <div className="text-4xl font-black text-slate-900">{getDisplayPrice()}</div>
-                                            </div>
+                                        <div className="text-right mt-6 md:mt-0">
+                                            <div className="text-4xl font-black text-slate-900 italic mb-3">{getDisplayPrice()}</div>
                                             <button 
                                                 onClick={handlePay}
-                                                className={`px-10 py-4 rounded-full font-black text-xs uppercase tracking-widest shadow-xl hover:scale-105 transition-transform ${airline.id === 'vueling' ? 'vueling-btn' : 'bg-[#FFF000] text-black'}`}
+                                                className={`px-12 py-3 rounded-full font-black text-xs uppercase tracking-widest shadow-lg hover:shadow-xl hover:scale-105 transition-all ${airline.id === 'vueling' ? 'bg-[#FFCC00] text-black' : 'bg-[#FFF000] text-black'}`}
                                             >
                                                 Select & Pay
                                             </button>
