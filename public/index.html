@@ -330,9 +330,29 @@
             };
 
             const getDisplayPrice = () => {
-                if(category === 'hotel') return '$150';
-                return '$190';
+                if (category === 'hotel') {
+                    if (selectedHotel === 'SAVOY') return '฿ 1,440';
+                    if (selectedHotel === 'MARRIOTT') return '₱ 34,639';
+                    if (selectedHotel === 'MILLENIUM') return '₱ 67,498';
+                }
+
+                // Flight Logic matched to FLIGHT_ROUTES
+                if (search.from === 'BCN' && search.to === 'CAI') return '€ 225';
+                if (search.from === 'BCN' && search.to === 'LEI') return '€ 190';
+                if (search.from === 'AMS' && search.to === 'BCN') return '€ 9,500';
+                if (search.from === 'BCN' && search.to === 'BIO') return '$ 110';
+                if (search.from === 'BCN' && search.to === 'GVA') return '$ 340';
+                if (search.from === 'IST' && search.to === 'IBZ') return '₹ 27,000';
+                if (search.from === 'ATH' && search.to === 'IBZ') return '€ 14,225';
+                if (search.from === 'MAD' && search.to === 'IBZ') return '€ 6,000';
+                if (search.from === 'IST' && search.to === 'BRU') return '$ 2,500';
+                if (search.from === 'CEB' && search.to === 'MNL') return '₫ 18,000';
+                if (search.from === 'SCL' && search.to === 'BCL') return '€ 5,000';
+                if (search.from === 'CEB' && search.to === 'LAO') return '₱ 5,000';
+
+                return '€ 2,000'; // Default fallback
             };
+
 
             const LoadingOverlay = () => (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex flex-col items-center justify-center text-white animate-in">
