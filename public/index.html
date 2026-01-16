@@ -131,13 +131,12 @@
         ];
         const LANGUAGE_OPTIONS = [{ code: "en", name: "English" }, { code: "ja", name: "Japanese" }, { code: "ko", name: "Korean" }, { code: "zh", name: "Mandarin" }];
 
-        // --- NEW: COLLAPSIBLE LOG COMPONENT ---
+        // --- COLLAPSIBLE LOG COMPONENT ---
         const LogItem = ({ log }) => {
             const [isOpen, setIsOpen] = useState(false);
             
             return (
                 <div className={`log-entry border-b border-white/5 transition-colors ${isOpen ? 'bg-white/5' : 'bg-transparent'}`}>
-                    {/* Header Row - Always Visible - Clickable */}
                     <div 
                         className="flex items-center gap-3 p-4 cursor-pointer hover:bg-white/5" 
                         onClick={() => setIsOpen(!isOpen)}
@@ -147,14 +146,9 @@
                         </span>
                         <span className="text-slate-500 text-[10px] font-mono">[{log.timestamp}]</span>
                         <span className="text-green-400 font-mono text-xs truncate flex-1">{log.endpoint}</span>
-                        
-                        {/* Arrow Button */}
-                        <div className="text-slate-400 text-xs">
-                            {isOpen ? '▼' : '▶'}
-                        </div>
+                        <div className="text-slate-400 text-xs">{isOpen ? '▼' : '▶'}</div>
                     </div>
 
-                    {/* Details - Only Visible when Open */}
                     {isOpen && (
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4 pt-0 pl-14 animate-in">
                             <div>
@@ -184,8 +178,12 @@
             const [airline, setAirline] = useState(AIRLINE_CONFIGS.vueling);
             const [loadingStage, setLoadingStage] = useState(isReturningSuccess ? "Verifying Payment..." : "");
             
+            // --- FIX: CLEAR LOGS ON FRESH LOAD ---
             useEffect(() => {
                 if (!isReturningSuccess) {
+                    sessionStorage.removeItem('flight_demo_logs');
+                    setApiLogs([]); // Clear local state too
+                    
                     setLoadingStage("Authenticating...");
                     setTimeout(() => {
                         setNavToken("JWT_MOCK_TOKEN");
