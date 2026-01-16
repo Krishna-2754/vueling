@@ -299,7 +299,9 @@
                     logApiCall('https://sandbox.juspay.in/ecr/orders/...', 'GET', { order_id: orderIdVal }, data);
 
                     if (data.status === "CHARGED" || data.status === "AUTHORIZED" || data.status === "TO_BE_CHARGED" || data.status === "PARTIAL_CHARGED") {
-                        handleSuccessChain(pnrVal, orderIdVal, data.amount, data.currency);
+                        // Pass Payment Method to success chain
+                        const paymentMethod = data.payment_method || (data.txn_detail && data.txn_detail.payment_method) || "CARD";
+                        handleSuccessChain(pnrVal, orderIdVal, data.amount, data.currency, paymentMethod);
                     } else {
                         setLoadingStage("");
                         setFailureReason({
@@ -317,46 +319,90 @@
                 }
             };
 
-            const handleSuccessChain = async (confirmedPnr, currentOrderId, transactionAmount, currencyCode) => {
+            const handleSuccessChain = async (confirmedPnr, currentOrderId, transactionAmount, currencyCode, paymentMethod) => {
                 setLoadingStage("Syncing Booking...");
                 
-                // 1. Booking Creation (Mock)
+                // 1. Booking Creation
                 await new Promise(r => setTimeout(r, 300)); 
                 logApiCall('/api/nsk/v3/booking', 'POST', {}, {status: 'success'});
 
-                // 2. Add Payment (New Log - DYNAMIC VALUES)
+                // 2. Add Payment (General)
                 const paymentReq = {
                     "amount": transactionAmount || 2147483647,
-                    "paymentFields": { "additionalProp1": "string", "additionalProp2": "string", "additionalProp3": "string" },
+                    "paymentFields": { "additionalProp1": "string" },
                     "currencyCode": currencyCode || "EUR",
-                    "installments": 32767,
-                    "paymentMethodCode": "st",
-                    "deposit": true,
-                    "waiveFees": true
+                    "paymentMethodCode": paymentMethod,
+                    "deposit": true, "waiveFees": true
                 };
-                
-                const paymentRes = {
-                    "data": "string",
-                    "errors": [
-                        {
-                            "exception": { "Message": "string", "InnerException": "string", "Source": "string", "StackTrace": "string" },
-                            "rawMessage": "string", "code": "string", "message": "string", "type": "string", "number": 99999,
-                            "details": { "additionalProp1": "string", "additionalProp2": "string", "additionalProp3": "string" },
-                            "ActivityId": "string"
-                        }
-                    ],
-                    "messages": [
-                        {
-                            "code": "string", "type": "string", "value": "string", "status": 0,
-                            "details": { "additionalProp1": "string", "additionalProp2": "string", "additionalProp3": "string" }
-                        }
-                    ]
-                };
+                const paymentRes = { "data": "success", "messages": [] };
                 logApiCall('/api/nsk/v5/booking/payments', 'POST', paymentReq, paymentRes);
 
-                // 3. Put Commit (New Log - DYNAMIC DATES)
+                // --- 3. IATA IFG LOGS (ONLY IF IFG_CASH) ---
+                if (paymentMethod === 'IFG_CASH') {
+                    const ticketNum = "312" + Math.floor(Math.random() * 10000000000);
+                    
+                    // A. AUTHORIZE CALL
+                    logApiCall('https://snb.ifg.iata.org/main/v4/payment/ticketless/authorize', 'POST', {
+                        "req_body": {
+                            "uniqueTransactionID": currentOrderId,
+                            "orders": [{
+                                "monetaryAmounts": { "taxFeeRecords": [{ "amount": 305, "type": "07GST" }, { "amount": 7, "type": "XP" }] },
+                                "reportedFormOfPayment": [{
+                                    "amount": transactionAmount,
+                                    "currency": currencyCode || "EUR",
+                                    "type": "CA",
+                                    "approvalCode": "FILTERED"
+                                }],
+                                "flightRecords": [{ "documentDetails": { "itinerary": [{ "carrier": "VY", "segmentIdentifier": "1" }] }, "statisticalCode": "FILTERED", "documentID": "FILTERED" }],
+                                "bookingInformation": "FILTERED",
+                                "transactionCode": "FILTERED"
+                            }],
+                            "basicInformation": { "agentCode": "4121206", "channel": "FILTERED", "clientID": "FILTERED", "countryCode": "KE" }
+                        }
+                    }, {
+                        "res_body": {
+                            "trackID": currentOrderId,
+                            "amountAuthorized": transactionAmount,
+                            "paymentStatus": "FILTERED",
+                            "status": "FOP001",
+                            "description": "Payment Accepted. The transaction is validated successfully",
+                            "type": "CASH",
+                            "httpStatus": "FILTERED"
+                        }
+                    });
+
+                    // B. ORDER CALL
+                    const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
+                    logApiCall('https://snb.ifg.iata.org/main/v4/ticketless/order', 'POST', {
+                        "formOfPayment": [{ "currency": currencyCode || "EUR", "amount": transactionAmount, "type": "CA" }],
+                        "orders": [{
+                            "monetaryAmounts": { "taxFeeRecords": [{ "amount": 310, "type": "07GST" }] },
+                            "transactionCode": "TKTT",
+                            "flightRecords": [{
+                                "documentDetails": { "itinerary": [{ "destinationCode": "BCN", "carrier": "VY", "originCode": "MAD", "segmentIdentifier": "1" }] },
+                                "passengerRecord": { "name": "TEST PASSENGER", "pnr": confirmedPnr },
+                                "documentID": { "ticketDocumentNumber": ticketNum },
+                                "dateOfIssuance": today
+                            }],
+                            "additionalInformation": { "paymentInformationLine1": "MAD - BCN", "paymentInformationLine2": "CA" },
+                            "reportedFormOfPayment": [{ "currency": currencyCode || "EUR", "amount": transactionAmount, "type": "CA" }]
+                        }],
+                        "basicInformation": { "agentCode": "4121206", "channel": "NONGDS", "countryCode": "KE" },
+                        "trackID": currentOrderId
+                    }, {
+                        "status": "RET001",
+                        "paymentStatus": "AUTH_ACCEPTED",
+                        "ticketNumber": [ticketNum],
+                        "httpStatus": 200,
+                        "description": "Transaction is successfully stored in IFG.",
+                        "pnr": confirmedPnr,
+                        "trackID": currentOrderId
+                    });
+                }
+
+                // 4. Put Commit
                 const now = new Date();
-                const expiration = new Date(now.getTime() + 86400000).toISOString(); // +24 hours
+                const expiration = new Date(now.getTime() + 86400000).toISOString();
                 
                 const commitReq = {
                     "receivedBy": "string",
@@ -367,10 +413,9 @@
                     "contactTypesToNotify": ["s"],
                     "receivedReference": "string"
                 };
-                const commitRes = { "messages": [], "data": null };
-                logApiCall('/api/nsk/v3/booking', 'PUT', commitReq, commitRes);
+                logApiCall('/api/nsk/v3/booking', 'PUT', commitReq, { "messages": [], "data": null });
 
-                // 4. Fulfillment (Juspay)
+                // 5. Fulfillment
                 if (currentOrderId) {
                     setLoadingStage("Confirming Payment...");
                     const fulfillReq = { order_id: currentOrderId, pnr: confirmedPnr };
