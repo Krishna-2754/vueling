@@ -141,7 +141,7 @@
                         className="flex items-center gap-3 p-4 cursor-pointer hover:bg-white/5" 
                         onClick={() => setIsOpen(!isOpen)}
                     >
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${log.method === 'POST' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-orange-500/10 text-orange-400 border border-orange-500/20'}`}>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${log.method === 'POST' || log.method === 'PUT' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-orange-500/10 text-orange-400 border border-orange-500/20'}`}>
                             {log.method}
                         </span>
                         <span className="text-slate-500 text-[10px] font-mono">[{log.timestamp}]</span>
@@ -178,11 +178,10 @@
             const [airline, setAirline] = useState(AIRLINE_CONFIGS.vueling);
             const [loadingStage, setLoadingStage] = useState(isReturningSuccess ? "Verifying Payment..." : "");
             
-            // --- FIX: CLEAR LOGS ON FRESH LOAD ---
             useEffect(() => {
                 if (!isReturningSuccess) {
                     sessionStorage.removeItem('flight_demo_logs');
-                    setApiLogs([]); // Clear local state too
+                    setApiLogs([]); 
                     
                     setLoadingStage("Authenticating...");
                     setTimeout(() => {
@@ -284,11 +283,11 @@
                     setAirline(AIRLINE_CONFIGS.vueling);
                     setPnr(pnrFromUrl);
                     setOrderId(orderIdFromUrl);
-                    verifyAndProceed(pnrFromUrl, orderIdFromUrl, 'Vueling');
+                    verifyAndProceed(pnrFromUrl, orderIdFromUrl);
                 }
             }, []);
 
-            const verifyAndProceed = async (pnrVal, orderIdVal, airlineName) => {
+            const verifyAndProceed = async (pnrVal, orderIdVal) => {
                 setLoadingStage("Verifying Payment Status...");
                 try {
                     const res = await fetch('/check-order-status', {
@@ -300,7 +299,7 @@
                     logApiCall('https://sandbox.juspay.in/ecr/orders/...', 'GET', { order_id: orderIdVal }, data);
 
                     if (data.status === "CHARGED" || data.status === "AUTHORIZED" || data.status === "TO_BE_CHARGED" || data.status === "PARTIAL_CHARGED") {
-                        handleSuccessChain(airlineName, pnrVal, orderIdVal);
+                        handleSuccessChain(pnrVal, orderIdVal, data.amount, data.currency);
                     } else {
                         setLoadingStage("");
                         setFailureReason({
@@ -318,11 +317,60 @@
                 }
             };
 
-            const handleSuccessChain = async (name, confirmedPnr, currentOrderId) => {
+            const handleSuccessChain = async (confirmedPnr, currentOrderId, transactionAmount, currencyCode) => {
                 setLoadingStage("Syncing Booking...");
-                await new Promise(r => setTimeout(r, 500)); 
+                
+                // 1. Booking Creation (Mock)
+                await new Promise(r => setTimeout(r, 300)); 
                 logApiCall('/api/nsk/v3/booking', 'POST', {}, {status: 'success'});
 
+                // 2. Add Payment (New Log - DYNAMIC VALUES)
+                const paymentReq = {
+                    "amount": transactionAmount || 2147483647,
+                    "paymentFields": { "additionalProp1": "string", "additionalProp2": "string", "additionalProp3": "string" },
+                    "currencyCode": currencyCode || "EUR",
+                    "installments": 32767,
+                    "paymentMethodCode": "st",
+                    "deposit": true,
+                    "waiveFees": true
+                };
+                
+                const paymentRes = {
+                    "data": "string",
+                    "errors": [
+                        {
+                            "exception": { "Message": "string", "InnerException": "string", "Source": "string", "StackTrace": "string" },
+                            "rawMessage": "string", "code": "string", "message": "string", "type": "string", "number": 99999,
+                            "details": { "additionalProp1": "string", "additionalProp2": "string", "additionalProp3": "string" },
+                            "ActivityId": "string"
+                        }
+                    ],
+                    "messages": [
+                        {
+                            "code": "string", "type": "string", "value": "string", "status": 0,
+                            "details": { "additionalProp1": "string", "additionalProp2": "string", "additionalProp3": "string" }
+                        }
+                    ]
+                };
+                logApiCall('/api/nsk/v5/booking/payments', 'POST', paymentReq, paymentRes);
+
+                // 3. Put Commit (New Log - DYNAMIC DATES)
+                const now = new Date();
+                const expiration = new Date(now.getTime() + 86400000).toISOString(); // +24 hours
+                
+                const commitReq = {
+                    "receivedBy": "string",
+                    "restrictionOverride": true,
+                    "hold": { "expiration": expiration },
+                    "notifyContacts": true,
+                    "comments": [{ "type": 0, "text": "string", "createdDate": expiration, "sendToBookingSource": true }],
+                    "contactTypesToNotify": ["s"],
+                    "receivedReference": "string"
+                };
+                const commitRes = { "messages": [], "data": null };
+                logApiCall('/api/nsk/v3/booking', 'PUT', commitReq, commitRes);
+
+                // 4. Fulfillment (Juspay)
                 if (currentOrderId) {
                     setLoadingStage("Confirming Payment...");
                     const fulfillReq = { order_id: currentOrderId, pnr: confirmedPnr };
