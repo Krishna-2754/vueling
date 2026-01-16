@@ -10,7 +10,6 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
-        /* FONTS: Nunito (Vueling) + Inter (Default) + Space Mono (Tickets) */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=Nunito:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap');
 
         body {
@@ -21,9 +20,7 @@
             color: #333;
         }
 
-        /* --- VUELING BRANDING --- */
         .vueling-hero {
-            /* Background Image */
             background: url('https://static.vueling.com/corporativeCMS/media/rgthsvk3/bc_bg_1920x1280_001.jpg') center/cover no-repeat;
             min-height: 700px;
             position: relative;
@@ -57,13 +54,14 @@
             box-shadow: 0 6px 20px rgba(0,0,0,0.15);
         }
 
-        /* --- ANIMATIONS & UTILS --- */
         .animate-in { animation: fadeIn 0.6s ease-out forwards; }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(15px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        
         .ticket-font { font-family: 'Space Mono', monospace; }
+        
         .custom-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
         .custom-scroll::-webkit-scrollbar-track { background: #1e1e1e; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
@@ -82,7 +80,6 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // ONLY Vueling Config is needed now, but keeping structure for safety
         const AIRLINE_CONFIGS = {
             vueling: { 
                 id: 'vueling', 
@@ -134,8 +131,47 @@
         ];
         const LANGUAGE_OPTIONS = [{ code: "en", name: "English" }, { code: "ja", name: "Japanese" }, { code: "ko", name: "Korean" }, { code: "zh", name: "Mandarin" }];
 
+        // --- NEW: COLLAPSIBLE LOG COMPONENT ---
+        const LogItem = ({ log }) => {
+            const [isOpen, setIsOpen] = useState(false);
+            
+            return (
+                <div className={`log-entry border-b border-white/5 transition-colors ${isOpen ? 'bg-white/5' : 'bg-transparent'}`}>
+                    {/* Header Row - Always Visible - Clickable */}
+                    <div 
+                        className="flex items-center gap-3 p-4 cursor-pointer hover:bg-white/5" 
+                        onClick={() => setIsOpen(!isOpen)}
+                    >
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${log.method === 'POST' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-orange-500/10 text-orange-400 border border-orange-500/20'}`}>
+                            {log.method}
+                        </span>
+                        <span className="text-slate-500 text-[10px] font-mono">[{log.timestamp}]</span>
+                        <span className="text-green-400 font-mono text-xs truncate flex-1">{log.endpoint}</span>
+                        
+                        {/* Arrow Button */}
+                        <div className="text-slate-400 text-xs">
+                            {isOpen ? '▼' : '▶'}
+                        </div>
+                    </div>
+
+                    {/* Details - Only Visible when Open */}
+                    {isOpen && (
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4 pt-0 pl-14 animate-in">
+                            <div>
+                                <div className="text-slate-500 mb-1 uppercase text-[9px] tracking-wider font-bold">Payload</div>
+                                <pre className="text-[10px] text-slate-300 bg-black/30 p-3 rounded-md overflow-x-auto border border-white/5 font-mono leading-relaxed max-h-60 custom-scroll">{JSON.stringify(log.request, null, 2)}</pre>
+                            </div>
+                            <div>
+                                <div className="text-slate-500 mb-1 uppercase text-[9px] tracking-wider font-bold">Response</div>
+                                <pre className="text-[10px] text-blue-200 bg-blue-900/10 p-3 rounded-md overflow-x-auto border border-blue-500/10 font-mono leading-relaxed max-h-60 custom-scroll">{JSON.stringify(log.response, null, 2)}</pre>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
         function App() {
-            // Iframe Breaker logic
             if (window.self !== window.top) {
                 const innerParams = new URLSearchParams(window.location.search);
                 if (innerParams.get('status')) { window.top.location.href = window.location.href; return null; }
@@ -144,20 +180,13 @@
             const urlParams = new URLSearchParams(window.location.search);
             const isReturningSuccess = urlParams.get('status') === 'success';
 
-            // --- DIRECT LOAD VUELING LOGIC ---
-            // If returning from success, use 'processing', otherwise go straight to 'airline' (Search Page)
             const [view, setView] = useState(isReturningSuccess ? 'processing' : 'airline');
-            
-            // Always default to Vueling
             const [airline, setAirline] = useState(AIRLINE_CONFIGS.vueling);
-
             const [loadingStage, setLoadingStage] = useState(isReturningSuccess ? "Verifying Payment..." : "");
             
-            // Auto-fetch token on load
             useEffect(() => {
                 if (!isReturningSuccess) {
                     setLoadingStage("Authenticating...");
-                    // Simulate Token Fetch
                     setTimeout(() => {
                         setNavToken("JWT_MOCK_TOKEN");
                         setLoadingStage(""); 
@@ -175,9 +204,8 @@
             const [category, setCategory] = useState('flight');
             const [selectedHotel, setSelectedHotel] = useState("SAVOY");
             const [successActiveTab, setSuccessActiveTab] = useState('ticket');
-            const [search, setSearch] = useState({ from: 'BCN', to: 'CAI', date: '2026-01-01', currency: 'EUR' });
+            const [search, setSearch] = useState({ from: 'BCN', to: 'CAI', date: '2026-01-28', currency: 'EUR' });
             
-            // --- LOGGING UTILS ---
             const [apiLogs, setApiLogs] = useState(() => {
                 const saved = sessionStorage.getItem('flight_demo_logs');
                 return saved ? JSON.parse(saved) : [];
@@ -294,7 +322,6 @@
 
             const handleSuccessChain = async (name, confirmedPnr, currentOrderId) => {
                 setLoadingStage("Syncing Booking...");
-                
                 await new Promise(r => setTimeout(r, 500)); 
                 logApiCall('/api/nsk/v3/booking', 'POST', {}, {status: 'success'});
 
@@ -320,7 +347,6 @@
                     if (selectedHotel === 'MARRIOTT') return '₱ 34,639';
                     if (selectedHotel === 'MILLENIUM') return '₱ 67,498';
                 }
-                // Flight Logic
                 if (search.from === 'BCN' && search.to === 'CAI') return '€ 225';
                 if (search.from === 'BCN' && search.to === 'LEI') return '€ 190';
                 if (search.from === 'AMS' && search.to === 'BCN') return '€ 9,500';
@@ -343,7 +369,6 @@
                 </div>
             );
 
-            // --- HEADER COMPONENT ---
             const Header = () => (
                 <div className="w-full bg-white relative z-50 sticky top-0 shadow-sm min-h-[70px] flex items-center justify-center overflow-hidden">
                         <img 
@@ -373,13 +398,11 @@
                 </div>
             );
             
-            // --- FAILURE ---
              if (view === 'failure') return (
                 <div className="min-h-screen flex flex-col items-center bg-slate-50 text-center animate-in">
                     <div className="pt-12 pb-8 px-4 w-full bg-white shadow-sm mb-6">
                         <div className="w-16 h-16 bg-red-500 text-white rounded-full flex items-center justify-center text-3xl shadow-lg mx-auto mb-4">✕</div>
                         <h1 className="text-3xl font-black text-slate-900 uppercase">Booking Failed</h1>
-
                         <div className="mt-4 bg-red-50 p-4 rounded-xl border border-red-100 max-w-lg mx-auto">
                             <div className="flex justify-between items-center border-b border-red-200 pb-2 mb-2">
                                 <span className="text-xs text-red-500 font-bold uppercase">Payment Status</span>
@@ -390,7 +413,6 @@
                                 <p className="text-sm text-slate-600 font-medium">{failureReason.message}</p>
                             </div>
                         </div>
-
                         <div className="flex justify-center mt-8 gap-4">
                             <button onClick={handleRestart} className="px-8 py-3 bg-slate-900 text-white rounded-full font-bold uppercase text-xs tracking-widest hover:bg-slate-800 transition-all shadow-lg">Try Again</button>
                             <button onClick={() => setSuccessActiveTab('logs')} className="px-6 py-3 border border-slate-300 text-slate-600 rounded-full font-bold uppercase text-xs tracking-widest hover:bg-slate-100 transition-all">View Logs</button>
@@ -399,7 +421,6 @@
                 </div>
             );
 
-            // --- SUCCESS VIEW (FULL LOGS) ---
             if (view === 'success') return (
                 <div className={`min-h-screen flex flex-col items-center bg-slate-50 text-center animate-in ${airline.isVueling ? 'font-[Nunito]' : 'font-sans'}`}>
                     <Header />
@@ -550,17 +571,8 @@
                                         Client API Events
                                     </div>
                                     <div className="p-0 overflow-y-auto flex-1 custom-scroll bg-[#1e1e1e]">
-                                        {apiLogs.map((log, index) => (
-                                            <div key={log.id} className={`log-entry border-b border-white/5 p-4 ${index % 2 === 0 ? 'bg-transparent' : 'bg-white/[0.02]'}`}>
-                                                <div className="flex items-center gap-3 mb-3">
-                                                    <span className="text-slate-500 text-[10px] font-mono">[{log.timestamp}]</span>
-                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${log.method === 'POST' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-orange-500/10 text-orange-400 border border-orange-500/20'}`}>
-                                                        {log.method}
-                                                    </span>
-                                                    <span className="text-green-400 font-mono text-xs">{log.endpoint}</span>
-                                                </div>
-                                                <pre className="text-[10px] text-slate-300 bg-black/30 p-3 rounded-md overflow-x-auto border border-white/5 font-mono leading-relaxed">{JSON.stringify(log.request, null, 2)}</pre>
-                                            </div>
+                                        {apiLogs.map((log) => (
+                                            <LogItem key={log.id} log={log} />
                                         ))}
                                     </div>
                                 </div>
@@ -601,40 +613,56 @@
                             {/* Widget */}
                             <div className={`${airline.id === 'vueling' ? 'vueling-widget p-6' : 'bg-white rounded-3xl shadow-2xl p-8'}`}>
                                 <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-                                    <div className={`md:col-span-3 h-14 px-4 flex flex-col justify-center border border-slate-200 ${airline.id === 'vueling' ? 'vueling-input-group' : 'bg-slate-50 rounded-lg'}`}>
-                                        <label className="text-[9px] uppercase font-bold text-slate-400 block">Origin</label>
-                                        <select className="w-full bg-transparent font-bold text-sm text-slate-800 focus:outline-none" value={search.from} onChange={(e) => setSearch({...search, from: e.target.value})}>
-                                            {ORIGIN_OPTIONS.map(o => <option key={o.code} value={o.code}>{o.name}</option>)}
-                                        </select>
-                                    </div>
-                                    <div className={`md:col-span-3 h-14 px-4 flex flex-col justify-center border border-slate-200 ${airline.id === 'vueling' ? 'vueling-input-group' : 'bg-slate-50 rounded-lg'}`}>
-                                        <label className="text-[9px] uppercase font-bold text-slate-400 block">Destination</label>
-                                        {category === 'flight' ? (
-                                            <select className="w-full bg-transparent font-bold text-sm text-slate-800 focus:outline-none" value={search.to} onChange={(e) => setSearch({...search, to: e.target.value})}>
-                                                {DESTINATION_OPTIONS.map(o => <option key={o.code} value={o.code}>{o.name}</option>)}
-                                            </select>
-                                        ) : (
+                                    
+                                    {/* DYNAMIC FIELDS: HOTELS vs FLIGHTS */}
+                                    {category === 'flight' ? (
+                                        <>
+                                            {/* Flight: Origin (3 cols) */}
+                                            <div className={`md:col-span-3 h-14 px-4 flex flex-col justify-center border border-slate-200 ${airline.id === 'vueling' ? 'vueling-input-group' : 'bg-slate-50 rounded-lg'}`}>
+                                                <label className="text-[9px] uppercase font-bold text-slate-400 block">Origin</label>
+                                                <select className="w-full bg-transparent font-bold text-sm text-slate-800 focus:outline-none" value={search.from} onChange={(e) => setSearch({...search, from: e.target.value})}>
+                                                    {ORIGIN_OPTIONS.map(o => <option key={o.code} value={o.code}>{o.name}</option>)}
+                                                </select>
+                                            </div>
+                                            {/* Flight: Destination (3 cols) */}
+                                            <div className={`md:col-span-3 h-14 px-4 flex flex-col justify-center border border-slate-200 ${airline.id === 'vueling' ? 'vueling-input-group' : 'bg-slate-50 rounded-lg'}`}>
+                                                <label className="text-[9px] uppercase font-bold text-slate-400 block">Destination</label>
+                                                <select className="w-full bg-transparent font-bold text-sm text-slate-800 focus:outline-none" value={search.to} onChange={(e) => setSearch({...search, to: e.target.value})}>
+                                                    {DESTINATION_OPTIONS.map(o => <option key={o.code} value={o.code}>{o.name}</option>)}
+                                                </select>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        /* Hotel: Select Hotel (6 cols - Replaces Origin/Dest) */
+                                        <div className={`md:col-span-6 h-14 px-4 flex flex-col justify-center border border-slate-200 ${airline.id === 'vueling' ? 'vueling-input-group' : 'bg-slate-50 rounded-lg'}`}>
+                                            <label className="text-[9px] uppercase font-bold text-slate-400 block">Select Hotel</label>
                                             <select className="w-full bg-transparent font-bold text-sm text-slate-800 focus:outline-none" value={selectedHotel} onChange={(e) => setSelectedHotel(e.target.value)}>
                                                 {HOTEL_OPTIONS.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
                                             </select>
-                                        )}
-                                    </div>
+                                        </div>
+                                    )}
+
+                                    {/* Date / Check-in */}
                                     <div className={`md:col-span-2 h-14 px-4 flex flex-col justify-center border border-slate-200 ${airline.id === 'vueling' ? 'vueling-input-group' : 'bg-slate-50 rounded-lg'}`}>
-                                        <label className="text-[9px] uppercase font-bold text-slate-400 block">Date</label>
+                                        <label className="text-[9px] uppercase font-bold text-slate-400 block">{category === 'hotel' ? 'Check-in' : 'Date'}</label>
                                         <input type="date" className="w-full bg-transparent font-bold text-sm text-slate-800 focus:outline-none" value={search.date} onChange={(e) => setSearch({...search, date: e.target.value})} />
                                     </div>
+
+                                    {/* Language */}
                                     <div className={`md:col-span-2 h-14 px-4 flex flex-col justify-center border border-slate-200 ${airline.id === 'vueling' ? 'vueling-input-group' : 'bg-slate-50 rounded-lg'}`}>
                                         <label className="text-[9px] uppercase font-bold text-slate-400 block">Language</label>
                                         <select className="w-full bg-transparent font-bold text-sm text-slate-800 focus:outline-none" value={language} onChange={(e) => setLanguage(e.target.value)}>
                                             {LANGUAGE_OPTIONS.map(l => <option key={l.code} value={l.code}>{l.name}</option>)}
                                         </select>
                                     </div>
+
+                                    {/* Search Button */}
                                     <div className="md:col-span-2">
                                         <button 
                                             onClick={handleSearch}
                                             className={`w-full h-14 text-sm ${airline.id === 'vueling' ? 'vueling-search-btn' : 'bg-[#00AEEF] text-white rounded-lg font-black uppercase'}`}
                                         >
-                                            Search Flights
+                                            {category === 'hotel' ? 'Search Hotels' : 'Search Flights'}
                                         </button>
                                     </div>
                                 </div>
@@ -654,7 +682,7 @@
                                                     )}
                                                 </div>
                                                 <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">
-                                                    Thu Jan 01 2026 | Non-Stop
+                                                    {new Date(search.date).toDateString()} | {category === 'flight' ? 'Non-Stop' : 'Standard Room'}
                                                 </div>
                                             </div>
                                         </div>
