@@ -231,10 +231,10 @@ const FLIGHT_ROUTES = {
   "IST_IBZ": { amount: "27000", currency: "INR", mti: MTI_IST_IBZ, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_SUG, addOnRules: SHARED_ADD_ON_RULES ,integrity: true,refId : "FLIGHT", isEmi : true, udf1: "Riyadh",udf2: "Manila",udf3: "mWeb", customerId: "Test123"},
   "ATH_IBZ": { amount: "14225", currency: "EUR", mti: MTI_MEL_CEB, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_SUG, addOnRules: SHARED_ADD_ON_RULES , integrity: false, riskProvider: "JUSPAYFRM",refId : "FLIGHT", udf1: "Melbourne",udf2: "Cebu",udf3: "Android", customerId: "Test123"},
   "MAD_IBZ": { amount: "6000", currency: "EUR", mti: MTI_ENI_MNL, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_SUG, addOnRules: SHARED_ADD_ON_RULES, integrity: true ,refId : "FLIGHT", udf1: "El Nido",udf2: "Manila",udf3: "Desktop", customerId: "Test123"},
-  "IST_BRU": { amount: "2500", currency: "USD", mti: MTI_PVG_MEL, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_KUL, addOnRules: SHARED_ADD_ON_RULES, integrity: true,refId : "FLIGHT" , udf1: "Shanghai",udf2: "Melbourne",udf3: "iOS", customerId: "Test123"},
+  "IST_BRU": { amount: "250", currency: "USD", mti: MTI_PVG_MEL, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_KUL, addOnRules: SHARED_ADD_ON_RULES, integrity: true,refId : "FLIGHT" , udf1: "Shanghai",udf2: "Melbourne",udf3: "iOS", customerId: "Test123"},
   "CEB_MNL": { amount: "18000", currency: "VND", mti: MTI_CEB_MNL, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_SUG, addOnRules: [], integrity: true,refId : "FLIGHT" , udf1: "Cebu",udf2: "Manila",udf3: "Android", customerId: "Test123"},
   "SCL_BCL": { amount: "5000", currency: "EUR", mti: MTI_CEB_MNL, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_SUG, addOnRules: [], integrity: true,refId : "FLIGHT" , udf1: "Cebu",udf2: "El Nido",udf3: "Android", customerId: "Test456"},
-  "CEB_LAO": { amount: "5000", currency: "PHP", mti: MTI_CEB_MNL, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_SUG, addOnRules: SHARED_ADD_ON_RULES, integrity: true,refId : "FLIGHT1" , udf1: "Cebu",udf2: "Laoag",udf3: "Android", customerId: "Test123", paymentRules: PAYMENT_RULES_SIN_MNL},
+  "BCN_CPH": { amount: "250", currency: "USD", mti: MTI_BCN_GEN, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_SUG, addOnRules: SHARED_ADD_ON_RULES, integrity: true,refId : "FLIGHT1" , udf1: "Cebu",udf2: "Laoag",udf3: "Android", customerId: "Test123", paymentRules: PAYMENT_RULES_SIN_MNL},
 };
 
 // --- FULFILLMENT ENDPOINT ---
@@ -359,7 +359,7 @@ app.post('/create-session', async (req, res) => {
             "metadata.risk_provider": scenario.riskProvider
         };
 
-        if (routeKey === "SIN_MNL") {
+        if (routeKey === "MAD_IBZ") {
             payload.reward_rules = REWARD_RULES;
         }
         if (scenario.cardinalRef) {
