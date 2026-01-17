@@ -22,6 +22,62 @@ app.post('/api/nsk/v3/booking', (req, res) => res.sendStatus(200));
 app.post('/api/nsk/v5/booking/payments', (req, res) => res.sendStatus(200));
 app.put('/api/nsk/v3/booking', (req, res) => res.sendStatus(200));
 
+
+// --- HELPER FUNCTION: Extract details for Merchant View ---
+const extractFlightDetails = (mtiString) => {
+    try {
+        if (!mtiString) return null;
+        const mti = JSON.parse(mtiString);
+        
+        // Skip non-flight LOBs (like Hotels)
+        if (mti.lob === 'Hotel') return null; 
+
+        // Safely access nested properties
+        const journey = mti.journeysDetail?.[0];
+        const segment = journey?.segments?.[0]?.segmentDetails;
+        
+        if (!segment) return null;
+
+        const depDate = new Date(segment.departure);
+        const arrDate = new Date(segment.arrival);
+        
+        // Calculate Duration
+        const diffMs = arrDate - depDate;
+        const diffHrs = Math.floor((diffMs % 86400000) / 3600000);
+        const diffMins = Math.round(((diffMs % 86400000) % 3600000) / 60000);
+        const duration = `${diffHrs.toString().padStart(2, '0')}h ${diffMins.toString().padStart(2, '0')}m`;
+
+        // Extract Times (HH:MM)
+        const depTime = depDate.toLocaleTimeString('en-GB', {hour: '2-digit', minute:'2-digit'});
+        const arrTime = arrDate.toLocaleTimeString('en-GB', {hour: '2-digit', minute:'2-digit'});
+
+        // Determine Passenger Count
+        let paxCount = 1;
+        if(mti.passengers) paxCount = mti.passengers.length;
+        else if(mti.priceBreakdown && mti.priceBreakdown.journeywiseList) {
+             paxCount = mti.priceBreakdown.journeywiseList[0].passengerCount || 1;
+        }
+
+        return {
+            fromCity: segment.originCityName || segment.origin,
+            toCity: segment.destinationCityName || segment.destination,
+            fromCode: segment.origin,
+            toCode: segment.destination,
+            date: segment.departure,
+            depTime: depTime,
+            arrTime: arrTime,
+            duration: duration,
+            flightNo: `${segment.identifier.carrierCode} ${segment.identifier.identifier}`,
+            pax: paxCount,
+            baggageCheckin: journey.journeydetail?.baggageData?.checkinBaggageWeight || "15",
+            baggageHand: journey.journeydetail?.baggageData?.handBaggageWeight || "7"
+        };
+    } catch (e) {
+        console.error("Error parsing MTI for Merchant View", e);
+        return null;
+    }
+};
+
 // =============================================================================
 // CONFIGURATION OBJECTS
 // =============================================================================
