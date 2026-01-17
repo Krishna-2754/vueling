@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trip Summary</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Mulish:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Mulish', sans-serif; background-color: white; }
+        .flight-line {
+            border-top: 2px dotted #93c5fd;
+            position: relative;
+            height: 1px;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .flight-icon {
+            position: absolute;
+            top: -10px;
+            left: 20%;
+            color: #93c5fd;
+            background: white;
+            padding: 0 5px;
+        }
+        .dot-end {
+            height: 8px;
+            width: 8px;
+            background-color: white;
+            border: 2px solid #93c5fd;
+            border-radius: 50%;
+            position: absolute;
+            top: -5px;
+            right: 0;
+        }
+    </style>
+</head>
+<body class="p-4 max-w-md mx-auto">
+
+    <h2 class="text-[#1e293b] text-2xl font-bold mb-4">Trip Summary</h2>
+
+    <div class="bg-[#e0f2fe] border border-[#bae6fd] rounded-xl p-4 mb-6">
+        <span class="text-[#334155] font-bold text-sm" id="pax-header">1 Adult</span>
+    </div>
+
+    <h3 class="text-[#1e293b] text-xl font-bold mb-3">Flight Summary</h3>
+
+    <div class="border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        
+        <div class="bg-[#f1f5f9] p-4 flex justify-between items-center border-b border-slate-200">
+            <span class="font-bold text-slate-900 text-sm">Departing</span>
+            <span class="font-bold text-slate-900 text-sm" id="flight-no">6E 2581, A320</span>
+        </div>
+
+        <div class="p-5">
+            <span class="inline-block bg-[#e0f2fe] text-[#0ea5e9] text-[10px] font-extrabold px-3 py-1 rounded-full mb-6">
+                Economy | Saver
+            </span>
+
+            <div class="border border-slate-200 rounded-xl p-4 mb-4">
+                <div class="text-[#1e00a8] font-extrabold text-lg mb-4">
+                    <span id="origin-city">Ghaziabad</span> - <span id="dest-city">Bengaluru</span>
+                </div>
+
+                <div class="flex items-center justify-between text-slate-500 text-sm font-medium">
+                    <span id="origin-code">HDO</span>
+                    
+                    <div class="flex-1 mx-4 text-center">
+                        <div class="text-slate-500 text-xs mb-1" id="duration">02h 40m</div>
+                        <div class="flight-line">
+                            <span class="flight-icon">✈</span>
+                            <span class="dot-end"></span>
+                        </div>
+                        <div class="text-slate-500 text-xs mt-1">Economy</div>
+                    </div>
+
+                    <span id="dest-code">BLR, T1</span>
+                </div>
+            </div>
+
+            <div class="text-slate-900 font-extrabold text-xs mb-2">
+                <span id="full-date">Sun, 18 Jan 2026</span> | 
+                <span id="time-range">14:15 - 16:55</span> | 
+                <span id="duration-text">02h 40m</span> | Non-Stop
+            </div>
+
+            <div class="text-slate-500 text-[10px] font-bold uppercase tracking-wide">
+                Check-in: <span id="baggage-checkin">15KG</span> | Hand: <span id="baggage-hand">Up to 7KG</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4 border border-slate-300 rounded-xl p-4 flex justify-between items-center bg-white">
+        <span class="font-bold text-slate-800 text-sm" id="pax-count-bottom">1 Passenger travelling</span>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
+    </div>
+
+    <script>
+        // Parse Query Params provided by Server.js
+        const params = new URLSearchParams(window.location.search);
+
+        function setText(id, value) {
+            if(document.getElementById(id) && value) document.getElementById(id).innerText = value;
+        }
+
+        const dateObj = new Date(params.get('date'));
+        const dateStr = dateObj.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+
+        setText('pax-header', `${params.get('pax')} Adult`);
+        setText('flight-no', params.get('flightNo'));
+        setText('origin-city', params.get('fromCity'));
+        setText('dest-city', params.get('toCity'));
+        setText('origin-code', params.get('fromCode'));
+        setText('dest-code', params.get('toCode'));
+        setText('duration', params.get('duration'));
+        setText('duration-text', params.get('duration'));
+        setText('full-date', dateStr);
+        setText('time-range', `${params.get('depTime')} - ${params.get('arrTime')}`);
+        setText('pax-count-bottom', `${params.get('pax')} Passenger travelling`);
+        
+        const baggageCheckin = params.get('baggageCheckin');
+        const baggageHand = params.get('baggageHand');
+        if(baggageCheckin) setText('baggage-checkin', `${baggageCheckin}KG`);
+        if(baggageHand) setText('baggage-hand', `Up to ${baggageHand}KG`);
+
+    </script>
+</body>
+</html>
