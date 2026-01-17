@@ -626,6 +626,10 @@ app.post('/check-order-status', async (req, res) => {
     }
 });
 
+app.get('/merchant-view', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'merchant-view.html'));
+});
+
 // --- 3. CATCH-ALL HANDLER ---
 // If the user visits any other URL, send them the index.html
 app.get('*', (req, res) => {
