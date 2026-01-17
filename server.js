@@ -472,17 +472,70 @@ app.post('/fulfill-order', async (req, res) => {
 // });
 
 // --- CREATE SESSION ENDPOINT ---
+// =============================================================================
+//  STATIC FLIGHT DISPLAY DATA (Hardcoded for Merchant View)
+// =============================================================================
+
+const CITY_NAMES = {
+    "BCN": "Barcelona", "LEI": "Almeria", "AMS": "Amsterdam", "BIO": "Bilbao",
+    "CAI": "Cairo", "CPH": "Copenhagen", "GVA": "Geneva", "IST": "Istanbul",
+    "IBZ": "Ibiza", "ATH": "Athens", "MAD": "Madrid", "BRU": "Brussels",
+    "SCL": "Santiago", "MNL": "Manila", "MEL": "Melbourne", "CEB": "Cebu",
+    "ENI": "El Nido", "PVG": "Shanghai", "RUH": "Riyadh", "KUL": "Kuala Lumpur"
+};
+
+// Map Route Key (ORIGIN_DEST) -> Display Details
+const FLIGHT_DISPLAY_DETAILS = {
+    // 1. Barcelona to Almeria (Roundtrip, Domestic)
+    "BCN_LEI": { flightNo: "VY 1234, A320", depTime: "07:00", arrTime: "08:15", duration: "01h 15m", checkin: "15", hand: "10" },
+    
+    // 2. Amsterdam to Barcelona (Oneway, International)
+    "AMS_BCN": { flightNo: "VY 8301, A321", depTime: "10:30", arrTime: "12:40", duration: "02h 10m", checkin: "23", hand: "10" },
+    
+    // 3. Barcelona to Bilbao (Roundtrip, Domestic)
+    "BCN_BIO": { flightNo: "VY 1450, A320", depTime: "14:15", arrTime: "15:35", duration: "01h 20m", checkin: "15", hand: "7" },
+    
+    // 4. Barcelona to Cairo (Oneway, International)
+    "BCN_CAI": { flightNo: "VY 7852, A320", depTime: "16:00", arrTime: "20:30", duration: "04h 30m", checkin: "30", hand: "10" },
+    
+    // 5. Barcelona to Copenhagen (Multicity start)
+    "BCN_CPH": { flightNo: "VY 6505, A320", depTime: "09:00", arrTime: "12:15", duration: "03h 15m", checkin: "23", hand: "10" },
+    "BCN_GVA": { flightNo: "VY 6505, A320", depTime: "09:00", arrTime: "12:15", duration: "03h 15m", checkin: "23", hand: "10" }, // Mapping for multicity search
+
+    // 6. Istanbul to Ibiza (Oneway, International)
+    "IST_IBZ": { flightNo: "VY 9901, A321", depTime: "11:45", arrTime: "14:30", duration: "03h 45m", checkin: "25", hand: "10" },
+    
+    // 7. Athens to Ibiza (Oneway, International)
+    "ATH_IBZ": { flightNo: "VY 3342, A320", depTime: "13:00", arrTime: "15:15", duration: "03h 15m", checkin: "23", hand: "10" },
+    
+    // 8. Ibiza to Athens (Oneway, International)
+    "IBZ_ATH": { flightNo: "VY 3343, A320", depTime: "16:30", arrTime: "20:30", duration: "03h 00m", checkin: "23", hand: "10" },
+    
+    // 9. Santiago to Barcelona (Oneway, Domestic)
+    "SCL_BCN": { flightNo: "VY 2022, A320", depTime: "08:45", arrTime: "10:20", duration: "01h 35m", checkin: "15", hand: "7" },
+    
+    // 10. Madrid to Ibiza (Oneway, Domestic)
+    "MAD_IBZ": { flightNo: "VY 1100, A320", depTime: "19:00", arrTime: "20:10", duration: "01h 10m", checkin: "15", hand: "7" },
+    
+    // 11. Istanbul to Brussels (Roundtrip, International)
+    "IST_BRU": { flightNo: "VY 5566, A321", depTime: "06:30", arrTime: "09:00", duration: "03h 30m", checkin: "30", hand: "10" }
+};
+
+const DEFAULT_FLIGHT = { flightNo: "VY 9999, A320", depTime: "12:00", arrTime: "14:00", duration: "02h 00m", checkin: "20", hand: "7" };
+
+
+// =============================================================================
+//  API: Create Session
+// =============================================================================
 app.post('/create-session', async (req, res) => {
   try {
     const { navToken, airlineName, searchData, language, category, hotelId } = req.body;
     const sessionPNR = generatePNR();
-    const { from, to } = searchData;
+    const { from, to, date } = searchData;
     const protocol = req.headers['x-forwarded-proto'] || 'http';
     const host = req.get('host');
     
-    // Base Return URL
     const dynamicReturnUrl = `${protocol}://${host}?status=success&airline=${encodeURIComponent(airlineName)}&pnr=${sessionPNR}`;
-    
     let merchantViewUrl = ""; 
     let payload = {};
 
@@ -517,30 +570,34 @@ app.post('/create-session', async (req, res) => {
         if (hotelConfig.paymentRules) payload.payment_rules = hotelConfig.paymentRules;
 
     } 
-    // --- FLIGHT LOGIC ---
+    // --- FLIGHT LOGIC (HARDCODED VIEW) ---
     else {
         const routeKey = `${from}_${to}`;
-        const scenario = FLIGHT_ROUTES[routeKey] || FLIGHT_ROUTES["MNL_SUG"];
+        const scenario = FLIGHT_ROUTES[routeKey] || FLIGHT_ROUTES["BCN_LEI"];
         
-        // --- HARDCODED MERCHANT VIEW URL FOR TESTING ---
-        const hardcodedParams = new URLSearchParams({
-            fromCity: "Ghaziabad",
-            toCity: "Bengaluru",
-            fromCode: "HDO",
-            toCode: "BLR, T1",
-            date: "2026-01-18",
-            depTime: "14:15",
-            arrTime: "16:55",
-            duration: "02h 40m",
-            flightNo: "6E 2581, A320",
-            pax: "1",
-            baggageCheckin: "15",
-            baggageHand: "7"
-        }).toString();
+        // 1. Get Display Details from Static Map
+        const display = FLIGHT_DISPLAY_DETAILS[routeKey] || DEFAULT_FLIGHT;
+        const fromCity = CITY_NAMES[from] || from;
+        const toCity = CITY_NAMES[to] || to;
 
-        merchantViewUrl = `${protocol}://${host}/merchant-view?${hardcodedParams}`;
-        console.log("✅ Using Hardcoded Merchant View URL:", merchantViewUrl);
-        // -----------------------------------------------
+        // 2. Build URL Params
+        const viewParams = new URLSearchParams({
+            fromCity: fromCity,
+            toCity: toCity,
+            fromCode: from,
+            toCode: to,
+            date: date,
+            depTime: display.depTime,
+            arrTime: display.arrTime,
+            duration: display.duration,
+            flightNo: display.flightNo,
+            pax: "1", // Hardcoded per screenshot requirement
+            baggageCheckin: display.checkin,
+            baggageHand: display.hand
+        });
+
+        merchantViewUrl = `${protocol}://${host}/merchant-view?${viewParams.toString()}`;
+        console.log(`✅ Generated Static View for ${routeKey}:`, merchantViewUrl);
 
         payload = {
             "order_id": `PAH-${Date.now()}`,
@@ -554,7 +611,7 @@ app.post('/create-session', async (req, res) => {
             "action": "paymentPage",
             "return_url": dynamicReturnUrl,
             
-            // Pass the URL here
+            // PASS URL HERE
             "merchant_view_url": merchantViewUrl, 
             
             "description": null,
