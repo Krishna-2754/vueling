@@ -24,19 +24,40 @@ app.put('/api/nsk/v3/booking', (req, res) => res.sendStatus(200));
 
 
 // --- HELPER FUNCTION: Extract details for Merchant View ---
+// --- HELPER FUNCTION: Extract details for Merchant View ---
 const extractFlightDetails = (mtiString) => {
     try {
-        if (!mtiString) return null;
+        console.log("🔍 Parsing MTI for Merchant View..."); // Debug Log 1
+
+        if (!mtiString) {
+            console.log("❌ MTI string is empty or undefined");
+            return null;
+        }
+
         const mti = JSON.parse(mtiString);
         
-        // Skip non-flight LOBs (like Hotels)
-        if (mti.lob === 'Hotel') return null; 
+        // Skip non-flight LOBs
+        if (mti.lob === 'Hotel') {
+            console.log("⚠️ Skipping: LOB is Hotel");
+            return null;
+        }
 
         // Safely access nested properties
         const journey = mti.journeysDetail?.[0];
-        const segment = journey?.segments?.[0]?.segmentDetails;
         
-        if (!segment) return null;
+        if (!journey) {
+            console.log("❌ Error: mti.journeysDetail[0] is missing");
+            return null;
+        }
+
+        const segment = journey.segments?.[0]?.segmentDetails;
+        
+        if (!segment) {
+            console.log("❌ Error: segmentDetails is missing");
+            return null;
+        }
+
+        console.log(`✅ Found Segment: ${segment.origin} -> ${segment.destination}`); // Debug Log 2
 
         const depDate = new Date(segment.departure);
         const arrDate = new Date(segment.arrival);
@@ -67,13 +88,13 @@ const extractFlightDetails = (mtiString) => {
             depTime: depTime,
             arrTime: arrTime,
             duration: duration,
-            flightNo: `${segment.identifier.carrierCode} ${segment.identifier.identifier}`,
+            flightNo: `${segment.identifier?.carrierCode || 'VY'} ${segment.identifier?.identifier || '000'}`,
             pax: paxCount,
             baggageCheckin: journey.journeydetail?.baggageData?.checkinBaggageWeight || "15",
             baggageHand: journey.journeydetail?.baggageData?.handBaggageWeight || "7"
         };
     } catch (e) {
-        console.error("Error parsing MTI for Merchant View", e);
+        console.error("❌ CRASH parsing MTI:", e.message); // Will show syntax errors
         return null;
     }
 };
