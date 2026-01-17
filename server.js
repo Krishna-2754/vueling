@@ -266,6 +266,134 @@ app.post('/fulfill-order', async (req, res) => {
 });
 
 // --- CREATE SESSION ENDPOINT (UPDATED FOR HOTELS) ---
+// app.post('/create-session', async (req, res) => {
+//   try {
+//     const { navToken, airlineName, searchData, language, category, hotelId } = req.body;
+//     const sessionPNR = generatePNR();
+//     const { from, to } = searchData;
+//     const protocol = req.headers['x-forwarded-proto'] || 'http';
+//     const host = req.get('host');
+//     const dynamicReturnUrl = `${protocol}://${host}?status=success&airline=${encodeURIComponent(airlineName)}&pnr=${sessionPNR}`;
+
+//     // Match route to Scenario
+//     const routeKey = `${from}_${to}`;
+//     const scenario = FLIGHT_ROUTES[routeKey] || FLIGHT_ROUTES["MNL_SUG"];
+//     let payload = {};
+
+//     // ----------------------------------------
+//     // LOGIC FOR HOTELS
+//     // ----------------------------------------
+//     if (category === 'hotel') {
+//         const hotelConfig = HOTEL_ROUTES[hotelId] || HOTEL_ROUTES["SAVOY"];
+//         console.log(`Using Hotel Scenario: ${hotelId} | Amount: ${hotelConfig.amount} ${hotelConfig.currency}`);
+
+//         payload = {
+//             "order_id": `PAH-${Date.now()}`,
+//             "amount": hotelConfig.amount,
+//             "currency": hotelConfig.currency,
+//             "customer_id": "Test123",
+//             "customer_email": "test@gmail.com",
+//             "customer_phone": "9999999999",
+//             "mobile_country_code": "91",
+//             "payment_page_client_id": "vueling", // "indigopp"
+//             "action": "paymentPage",
+//             "return_url": dynamicReturnUrl,
+//             "merchant_view_url": "",
+//             "description": null,
+//             "metadata.JUSPAY:gateway_reference_id": "HOTEL",
+//             "udf4": hotelConfig.udf4, // "Aurora"
+//             "options.get_client_auth_token": true,
+//             "payment_filter": hotelConfig.paymentFilter,
+//             "merchant_transient_info": hotelConfig.mti,
+//             "metadata.webhook_url": "https://en.wikipedia.org/wiki/Philippines",
+//             "metadata.expiryInMins": "12",
+//             "add_on_amount_rules": hotelConfig.addOnRules,
+//             "language": language || "en"
+//         };
+
+//         if (hotelConfig.rewardRules) {
+//             payload.reward_rules = hotelConfig.rewardRules;
+//         }
+//         if (hotelConfig.paymentRules) {
+//             payload.payment_rules = hotelConfig.paymentRules;
+//         }
+
+//     } 
+//     // ----------------------------------------
+//     // LOGIC FOR FLIGHTS (Existing)
+//     // ----------------------------------------
+//     else {
+//         const { from, to } = searchData;
+//         const routeKey = `${from}_${to}`;
+//         const scenario = FLIGHT_ROUTES[routeKey] || FLIGHT_ROUTES["MNL_SUG"];
+//         console.log(`Using Flight Scenario: ${routeKey} | Amount: ${scenario.amount} ${scenario.currency}`);
+
+//         payload = {
+//             "order_id": `PAH-${Date.now()}`,
+//             "amount": scenario.amount,
+//             "currency": scenario.currency,
+//             "customer_id": scenario.customerId,
+//             "customer_email": "test@gmail.com",
+//             "customer_phone": "9999999999",
+//             "mobile_country_code": "91",
+//             "payment_page_client_id": "vueling",
+//             "action": "paymentPage",
+//             "return_url": dynamicReturnUrl,
+//             "merchant_view_url": "",
+//             "description": null,
+//             "metadata.JUSPAY:gateway_reference_id": scenario.refId,
+//             "udf1": scenario.udf1,
+//             "udf2": scenario.udf2,
+//             "udf3": scenario.udf3,
+//             "udf6": navToken,
+//             "merchant_session_identifier": navToken,
+//             "metadata.NAVITAIRE:session_expiry_in_sec": "900",
+//             "metadata.disable_merchant_integrity_check": scenario.integrity,
+//             "options.get_client_auth_token": scenario.integrity,
+//             "payment_filter": scenario.paymentFilter,
+//             "add_on_amount_rules": scenario.addOnRules,
+//             "merchant_transient_info": scenario.mti,
+//             "metadata.webhook_url": "https://api-uat-skyplus.goindigo.in/postpayment/v1/payment/webhook",
+//             "metadata.expiryInMins": "12",
+//             "language": language || "en",
+//             "payment_rules": scenario.paymentRules,
+//             "metadata.risk_provider": scenario.riskProvider
+//         };
+
+//         if (routeKey === "MAD_IBZ") {
+//             payload.reward_rules = REWARD_RULES;
+//         }
+//         if (scenario.cardinalRef) {
+//             payload["metadata.CARDINAL:authentication_reference_id"] = scenario.cardinalRef;
+//         }
+//         if (scenario.baddress) {
+//             payload["billing_address_country_code_iso"] = scenario.baddress;
+//         }
+//         if (scenario.udf) {
+//             payload["udf1"] = scenario.udf;
+//         }
+//         if (scenario.autoCapture) {
+//             payload["metadata.txns.auto_capture"] = "false";
+//         }
+//         if (scenario.capCustId) {
+//             payload["metadata.CAPILLARY:customer_id"] = scenario.capCustId;
+//         }
+//         if (scenario.isEmi) {
+//             payload["is_emi"] = scenario.isEmi;
+//         }
+//     }
+
+//     const response = await axios.post('https://sandbox.juspay.in/session', payload, {
+//       headers: { 'Authorization': JUSPAY_AUTH, 'Content-Type': 'application/json' }
+//     });
+
+//     res.json({ url: response.data.payment_links.web, sentPayload: payload });
+//   } catch (error) {
+//     console.error("❌ ERROR:", error.response?.data || error.message);
+//     res.status(500).json({ error: error.message });
+//   }
+// });
+
 app.post('/create-session', async (req, res) => {
   try {
     const { navToken, airlineName, searchData, language, category, hotelId } = req.body;
@@ -273,7 +401,12 @@ app.post('/create-session', async (req, res) => {
     const { from, to } = searchData;
     const protocol = req.headers['x-forwarded-proto'] || 'http';
     const host = req.get('host');
+    
+    // 1. Define Return URL
     const dynamicReturnUrl = `${protocol}://${host}?status=success&airline=${encodeURIComponent(airlineName)}&pnr=${sessionPNR}`;
+    
+    // 2. Variable for Merchant View
+    let merchantViewUrl = ""; 
 
     // Match route to Scenario
     const routeKey = `${from}_${to}`;
@@ -285,8 +418,8 @@ app.post('/create-session', async (req, res) => {
     // ----------------------------------------
     if (category === 'hotel') {
         const hotelConfig = HOTEL_ROUTES[hotelId] || HOTEL_ROUTES["SAVOY"];
-        console.log(`Using Hotel Scenario: ${hotelId} | Amount: ${hotelConfig.amount} ${hotelConfig.currency}`);
-
+        // ... (Hotel logic remains same, URL stays empty or create a specific hotel view) ...
+        
         payload = {
             "order_id": `PAH-${Date.now()}`,
             "amount": hotelConfig.amount,
@@ -295,13 +428,12 @@ app.post('/create-session', async (req, res) => {
             "customer_email": "test@gmail.com",
             "customer_phone": "9999999999",
             "mobile_country_code": "91",
-            "payment_page_client_id": "vueling", // "indigopp"
+            "payment_page_client_id": "vueling",
             "action": "paymentPage",
             "return_url": dynamicReturnUrl,
-            "merchant_view_url": "",
             "description": null,
             "metadata.JUSPAY:gateway_reference_id": "HOTEL",
-            "udf4": hotelConfig.udf4, // "Aurora"
+            "udf4": hotelConfig.udf4,
             "options.get_client_auth_token": true,
             "payment_filter": hotelConfig.paymentFilter,
             "merchant_transient_info": hotelConfig.mti,
@@ -310,23 +442,27 @@ app.post('/create-session', async (req, res) => {
             "add_on_amount_rules": hotelConfig.addOnRules,
             "language": language || "en"
         };
-
-        if (hotelConfig.rewardRules) {
-            payload.reward_rules = hotelConfig.rewardRules;
-        }
-        if (hotelConfig.paymentRules) {
-            payload.payment_rules = hotelConfig.paymentRules;
-        }
+        // ... reward/payment rules check ...
+        if (hotelConfig.rewardRules) payload.reward_rules = hotelConfig.rewardRules;
+        if (hotelConfig.paymentRules) payload.payment_rules = hotelConfig.paymentRules;
 
     } 
     // ----------------------------------------
-    // LOGIC FOR FLIGHTS (Existing)
+    // LOGIC FOR FLIGHTS (UPDATED)
     // ----------------------------------------
     else {
         const { from, to } = searchData;
         const routeKey = `${from}_${to}`;
         const scenario = FLIGHT_ROUTES[routeKey] || FLIGHT_ROUTES["MNL_SUG"];
-        console.log(`Using Flight Scenario: ${routeKey} | Amount: ${scenario.amount} ${scenario.currency}`);
+        
+        // --- NEW: GENERATE MERCHANT VIEW URL ---
+        const flightDetails = extractFlightDetails(scenario.mti);
+        if (flightDetails) {
+            const queryParams = new URLSearchParams(flightDetails).toString();
+            merchantViewUrl = `${protocol}://${host}/merchant-view?${queryParams}`;
+            console.log("Generated Merchant View:", merchantViewUrl);
+        }
+        // ---------------------------------------
 
         payload = {
             "order_id": `PAH-${Date.now()}`,
@@ -339,7 +475,10 @@ app.post('/create-session', async (req, res) => {
             "payment_page_client_id": "vueling",
             "action": "paymentPage",
             "return_url": dynamicReturnUrl,
-            "merchant_view_url": "",
+            
+            // --- PASS THE URL HERE ---
+            "merchant_view_url": merchantViewUrl, 
+            
             "description": null,
             "metadata.JUSPAY:gateway_reference_id": scenario.refId,
             "udf1": scenario.udf1,
@@ -360,27 +499,14 @@ app.post('/create-session', async (req, res) => {
             "metadata.risk_provider": scenario.riskProvider
         };
 
-        if (routeKey === "MAD_IBZ") {
-            payload.reward_rules = REWARD_RULES;
-        }
-        if (scenario.cardinalRef) {
-            payload["metadata.CARDINAL:authentication_reference_id"] = scenario.cardinalRef;
-        }
-        if (scenario.baddress) {
-            payload["billing_address_country_code_iso"] = scenario.baddress;
-        }
-        if (scenario.udf) {
-            payload["udf1"] = scenario.udf;
-        }
-        if (scenario.autoCapture) {
-            payload["metadata.txns.auto_capture"] = "false";
-        }
-        if (scenario.capCustId) {
-            payload["metadata.CAPILLARY:customer_id"] = scenario.capCustId;
-        }
-        if (scenario.isEmi) {
-            payload["is_emi"] = scenario.isEmi;
-        }
+        // ... (rest of optional field checks like scenario.cardinalRef etc) ...
+        if (routeKey === "MAD_IBZ") payload.reward_rules = REWARD_RULES;
+        if (scenario.cardinalRef) payload["metadata.CARDINAL:authentication_reference_id"] = scenario.cardinalRef;
+        if (scenario.baddress) payload["billing_address_country_code_iso"] = scenario.baddress;
+        if (scenario.udf) payload["udf1"] = scenario.udf;
+        if (scenario.autoCapture) payload["metadata.txns.auto_capture"] = "false";
+        if (scenario.capCustId) payload["metadata.CAPILLARY:customer_id"] = scenario.capCustId;
+        if (scenario.isEmi) payload["is_emi"] = scenario.isEmi;
     }
 
     const response = await axios.post('https://sandbox.juspay.in/session', payload, {
