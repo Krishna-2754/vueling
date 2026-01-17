@@ -476,6 +476,7 @@ app.post('/fulfill-order', async (req, res) => {
 //  STATIC FLIGHT DISPLAY DATA (Hardcoded for Merchant View)
 // =============================================================================
 
+// Ensure this object in server.js has these exact City Names
 const CITY_NAMES = {
     "BCN": "Barcelona", "LEI": "Almeria", "AMS": "Amsterdam", "BIO": "Bilbao",
     "CAI": "Cairo", "CPH": "Copenhagen", "GVA": "Geneva", "IST": "Istanbul",
@@ -484,40 +485,19 @@ const CITY_NAMES = {
     "ENI": "El Nido", "PVG": "Shanghai", "RUH": "Riyadh", "KUL": "Kuala Lumpur"
 };
 
-// Map Route Key (ORIGIN_DEST) -> Display Details
+// Ensure this object uses "VY" (Vueling) flight numbers, NOT "6E"
 const FLIGHT_DISPLAY_DETAILS = {
-    // 1. Barcelona to Almeria (Roundtrip, Domestic)
     "BCN_LEI": { flightNo: "VY 1234, A320", depTime: "07:00", arrTime: "08:15", duration: "01h 15m", checkin: "15", hand: "10" },
-    
-    // 2. Amsterdam to Barcelona (Oneway, International)
     "AMS_BCN": { flightNo: "VY 8301, A321", depTime: "10:30", arrTime: "12:40", duration: "02h 10m", checkin: "23", hand: "10" },
-    
-    // 3. Barcelona to Bilbao (Roundtrip, Domestic)
     "BCN_BIO": { flightNo: "VY 1450, A320", depTime: "14:15", arrTime: "15:35", duration: "01h 20m", checkin: "15", hand: "7" },
-    
-    // 4. Barcelona to Cairo (Oneway, International)
     "BCN_CAI": { flightNo: "VY 7852, A320", depTime: "16:00", arrTime: "20:30", duration: "04h 30m", checkin: "30", hand: "10" },
-    
-    // 5. Barcelona to Copenhagen (Multicity start)
     "BCN_CPH": { flightNo: "VY 6505, A320", depTime: "09:00", arrTime: "12:15", duration: "03h 15m", checkin: "23", hand: "10" },
-    "BCN_GVA": { flightNo: "VY 6505, A320", depTime: "09:00", arrTime: "12:15", duration: "03h 15m", checkin: "23", hand: "10" }, // Mapping for multicity search
-
-    // 6. Istanbul to Ibiza (Oneway, International)
+    "BCN_GVA": { flightNo: "VY 6505, A320", depTime: "09:00", arrTime: "12:15", duration: "03h 15m", checkin: "23", hand: "10" }, 
     "IST_IBZ": { flightNo: "VY 9901, A321", depTime: "11:45", arrTime: "14:30", duration: "03h 45m", checkin: "25", hand: "10" },
-    
-    // 7. Athens to Ibiza (Oneway, International)
     "ATH_IBZ": { flightNo: "VY 3342, A320", depTime: "13:00", arrTime: "15:15", duration: "03h 15m", checkin: "23", hand: "10" },
-    
-    // 8. Ibiza to Athens (Oneway, International)
     "IBZ_ATH": { flightNo: "VY 3343, A320", depTime: "16:30", arrTime: "20:30", duration: "03h 00m", checkin: "23", hand: "10" },
-    
-    // 9. Santiago to Barcelona (Oneway, Domestic)
     "SCL_BCN": { flightNo: "VY 2022, A320", depTime: "08:45", arrTime: "10:20", duration: "01h 35m", checkin: "15", hand: "7" },
-    
-    // 10. Madrid to Ibiza (Oneway, Domestic)
     "MAD_IBZ": { flightNo: "VY 1100, A320", depTime: "19:00", arrTime: "20:10", duration: "01h 10m", checkin: "15", hand: "7" },
-    
-    // 11. Istanbul to Brussels (Roundtrip, International)
     "IST_BRU": { flightNo: "VY 5566, A321", depTime: "06:30", arrTime: "09:00", duration: "03h 30m", checkin: "30", hand: "10" }
 };
 
