@@ -471,6 +471,7 @@ app.post('/fulfill-order', async (req, res) => {
 //   }
 // });
 
+// --- CREATE SESSION ENDPOINT ---
 app.post('/create-session', async (req, res) => {
   try {
     const { navToken, airlineName, searchData, language, category, hotelId } = req.body;
@@ -482,9 +483,7 @@ app.post('/create-session', async (req, res) => {
     // Base Return URL
     const dynamicReturnUrl = `${protocol}://${host}?status=success&airline=${encodeURIComponent(airlineName)}&pnr=${sessionPNR}`;
     
-    // Initialize Merchant View URL as empty
     let merchantViewUrl = ""; 
-
     let payload = {};
 
     // --- HOTEL LOGIC ---
@@ -502,7 +501,7 @@ app.post('/create-session', async (req, res) => {
             "payment_page_client_id": "vueling",
             "action": "paymentPage",
             "return_url": dynamicReturnUrl,
-            "merchant_view_url": "", // Hotels don't use this yet
+            "merchant_view_url": "", 
             "description": null,
             "metadata.JUSPAY:gateway_reference_id": "HOTEL",
             "udf4": hotelConfig.udf4,
@@ -523,15 +522,25 @@ app.post('/create-session', async (req, res) => {
         const routeKey = `${from}_${to}`;
         const scenario = FLIGHT_ROUTES[routeKey] || FLIGHT_ROUTES["MNL_SUG"];
         
-        // 1. GENERATE MERCHANT VIEW URL
-        // Ensure extractFlightDetails is called here
-        const flightDetails = extractFlightDetails(scenario.mti);
-        
-        if (flightDetails) {
-            const queryParams = new URLSearchParams(flightDetails).toString();
-            merchantViewUrl = `${protocol}://${host}/merchant-view?${queryParams}`;
-            console.log("✅ Generated Merchant View:", merchantViewUrl);
-        }
+        // --- HARDCODED MERCHANT VIEW URL FOR TESTING ---
+        const hardcodedParams = new URLSearchParams({
+            fromCity: "Ghaziabad",
+            toCity: "Bengaluru",
+            fromCode: "HDO",
+            toCode: "BLR, T1",
+            date: "2026-01-18",
+            depTime: "14:15",
+            arrTime: "16:55",
+            duration: "02h 40m",
+            flightNo: "6E 2581, A320",
+            pax: "1",
+            baggageCheckin: "15",
+            baggageHand: "7"
+        }).toString();
+
+        merchantViewUrl = `${protocol}://${host}/merchant-view?${hardcodedParams}`;
+        console.log("✅ Using Hardcoded Merchant View URL:", merchantViewUrl);
+        // -----------------------------------------------
 
         payload = {
             "order_id": `PAH-${Date.now()}`,
@@ -545,7 +554,7 @@ app.post('/create-session', async (req, res) => {
             "action": "paymentPage",
             "return_url": dynamicReturnUrl,
             
-            // 2. PASS THE URL HERE
+            // Pass the URL here
             "merchant_view_url": merchantViewUrl, 
             
             "description": null,
