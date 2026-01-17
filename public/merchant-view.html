@@ -5,16 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trip Summary</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Mulish:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Mulish:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Mulish', sans-serif; background-color: #ffffff; color: #1e293b; }
         
-        /* Custom Colors based on screenshot */
-        .text-navy { color: #1e293b; } /* Dark header text */
-        .text-blue-main { color: #1e00a8; } /* Route text */
-        .bg-pill { background-color: #e0f2fe; color: #0ea5e9; } /* 1 Adult / Economy Saver */
-        .bg-card-header { background-color: #f1f5f9; }
-        .text-meta { color: #64748b; }
+        /* Custom Colors */
+        .text-navy { color: #0f172a; } /* Darker navy for header */
+        .text-blue-main { color: #1e00a8; } 
+        .bg-pill { background-color: #e0f2fe; color: #0ea5e9; } 
+        .bg-card-header { background-color: #f8fafc; }
         
         /* Flight graphic styling */
         .flight-path {
@@ -27,7 +26,7 @@
         }
         .plane-icon {
             position: absolute;
-            top: -8px; /* Center plane on line */
+            top: -8px;
             left: 0;
             color: #93c5fd;
             background: white;
@@ -49,7 +48,7 @@
 </head>
 <body class="p-4 w-full max-w-[400px] mx-auto select-none">
 
-    <h2 class="text-navy text-2xl font-black tracking-tight mb-4">Trip Summary</h2>
+    <h2 class="text-navy text-2xl font-bold tracking-tight mb-4">Trip Summary</h2>
 
     <div class="bg-pill bg-opacity-50 border border-blue-100 rounded-lg py-3 px-4 mb-6">
         <span class="font-extrabold text-sm text-slate-600" id="pax-header">1 Adult</span>
@@ -61,7 +60,7 @@
         
         <div class="bg-card-header px-5 py-3 flex justify-between items-center border-b border-slate-100">
             <span class="font-extrabold text-slate-900 text-sm">Departing</span>
-            <span class="font-extrabold text-slate-900 text-sm" id="flight-no">6E 2581, A320</span>
+            <span class="font-extrabold text-slate-900 text-sm" id="flight-no">VY ...</span>
         </div>
 
         <div class="p-5">
@@ -71,14 +70,14 @@
 
             <div class="border border-slate-100 rounded-xl p-4 mb-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
                 <div class="text-blue-main font-black text-lg mb-4 leading-tight">
-                    <span id="origin-city">Ghaziabad</span> - <span id="dest-city">Bengaluru</span>
+                    <span id="origin-city">Origin</span> - <span id="dest-city">Destination</span>
                 </div>
 
                 <div class="flex items-center justify-between text-slate-500 text-sm font-bold">
-                    <span id="origin-code">HDO</span>
+                    <span id="origin-code">ORG</span>
                     
                     <div class="flex-1 flex flex-col items-center mx-2">
-                        <div class="text-slate-400 text-[10px] font-semibold mb-1" id="duration">02h 40m</div>
+                        <div class="text-slate-400 text-[10px] font-semibold mb-1" id="duration">--h --m</div>
                         <div class="flight-path relative w-full">
                             <span class="plane-icon">✈</span>
                             <span class="dot-end"></span>
@@ -86,14 +85,14 @@
                         <div class="text-slate-400 text-[10px] font-semibold mt-1">Economy</div>
                     </div>
 
-                    <span id="dest-code">BLR, T1</span>
+                    <span id="dest-code">DST</span>
                 </div>
             </div>
 
             <div class="text-slate-900 font-extrabold text-xs mb-2 leading-relaxed">
-                <span id="full-date">Sun, 18 Jan 2026</span> | 
-                <span id="time-range">14:15 - 16:55</span> | 
-                <span id="duration-text">02h 40m</span> | Non-Stop
+                <span id="full-date">...</span> | 
+                <span id="time-range">--:-- - --:--</span> | 
+                <span id="duration-text">--h --m</span> | Non-Stop
             </div>
 
             <div class="text-slate-400 text-[10px] font-bold uppercase tracking-wide">
@@ -111,7 +110,6 @@
     </div>
 
     <script>
-        // Parse Query Params provided by Server.js
         const params = new URLSearchParams(window.location.search);
 
         function setText(id, value) {
