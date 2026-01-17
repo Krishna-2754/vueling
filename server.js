@@ -458,23 +458,17 @@ app.post('/create-session', async (req, res) => {
     const protocol = req.headers['x-forwarded-proto'] || 'http';
     const host = req.get('host');
     
-    // 1. Define Return URL
+    // Base Return URL
     const dynamicReturnUrl = `${protocol}://${host}?status=success&airline=${encodeURIComponent(airlineName)}&pnr=${sessionPNR}`;
     
-    // 2. Variable for Merchant View
+    // Initialize Merchant View URL as empty
     let merchantViewUrl = ""; 
 
-    // Match route to Scenario
-    const routeKey = `${from}_${to}`;
-    const scenario = FLIGHT_ROUTES[routeKey] || FLIGHT_ROUTES["MNL_SUG"];
     let payload = {};
 
-    // ----------------------------------------
-    // LOGIC FOR HOTELS
-    // ----------------------------------------
+    // --- HOTEL LOGIC ---
     if (category === 'hotel') {
         const hotelConfig = HOTEL_ROUTES[hotelId] || HOTEL_ROUTES["SAVOY"];
-        // ... (Hotel logic remains same, URL stays empty or create a specific hotel view) ...
         
         payload = {
             "order_id": `PAH-${Date.now()}`,
@@ -487,6 +481,7 @@ app.post('/create-session', async (req, res) => {
             "payment_page_client_id": "vueling",
             "action": "paymentPage",
             "return_url": dynamicReturnUrl,
+            "merchant_view_url": "", // Hotels don't use this yet
             "description": null,
             "metadata.JUSPAY:gateway_reference_id": "HOTEL",
             "udf4": hotelConfig.udf4,
@@ -498,27 +493,24 @@ app.post('/create-session', async (req, res) => {
             "add_on_amount_rules": hotelConfig.addOnRules,
             "language": language || "en"
         };
-        // ... reward/payment rules check ...
         if (hotelConfig.rewardRules) payload.reward_rules = hotelConfig.rewardRules;
         if (hotelConfig.paymentRules) payload.payment_rules = hotelConfig.paymentRules;
 
     } 
-    // ----------------------------------------
-    // LOGIC FOR FLIGHTS (UPDATED)
-    // ----------------------------------------
+    // --- FLIGHT LOGIC ---
     else {
-        const { from, to } = searchData;
         const routeKey = `${from}_${to}`;
         const scenario = FLIGHT_ROUTES[routeKey] || FLIGHT_ROUTES["MNL_SUG"];
         
-        // --- NEW: GENERATE MERCHANT VIEW URL ---
+        // 1. GENERATE MERCHANT VIEW URL
+        // Ensure extractFlightDetails is called here
         const flightDetails = extractFlightDetails(scenario.mti);
+        
         if (flightDetails) {
             const queryParams = new URLSearchParams(flightDetails).toString();
             merchantViewUrl = `${protocol}://${host}/merchant-view?${queryParams}`;
-            console.log("Generated Merchant View:", merchantViewUrl);
+            console.log("✅ Generated Merchant View:", merchantViewUrl);
         }
-        // ---------------------------------------
 
         payload = {
             "order_id": `PAH-${Date.now()}`,
@@ -532,7 +524,7 @@ app.post('/create-session', async (req, res) => {
             "action": "paymentPage",
             "return_url": dynamicReturnUrl,
             
-            // --- PASS THE URL HERE ---
+            // 2. PASS THE URL HERE
             "merchant_view_url": merchantViewUrl, 
             
             "description": null,
@@ -555,7 +547,6 @@ app.post('/create-session', async (req, res) => {
             "metadata.risk_provider": scenario.riskProvider
         };
 
-        // ... (rest of optional field checks like scenario.cardinalRef etc) ...
         if (routeKey === "MAD_IBZ") payload.reward_rules = REWARD_RULES;
         if (scenario.cardinalRef) payload["metadata.CARDINAL:authentication_reference_id"] = scenario.cardinalRef;
         if (scenario.baddress) payload["billing_address_country_code_iso"] = scenario.baddress;
