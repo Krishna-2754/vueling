@@ -6,11 +6,19 @@
     <title>Trip Summary</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Mulish:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
     <style>
-        body { font-family: 'Mulish', sans-serif; background-color: #ffffff; color: #1e293b; }
+        body { 
+            font-family: 'Mulish', sans-serif; 
+            background-color: #ffffff; 
+            color: #1e293b;
+            /* Ensure no default margin messes up the height calculation */
+            margin: 0; 
+            overflow: hidden; /* Hide scrollbars within the iframe itself */
+        }
         
         /* Custom Colors */
-        .text-navy { color: #0f172a; } /* Darker navy for header */
+        .text-navy { color: #0f172a; } 
         .text-blue-main { color: #1e00a8; } 
         .bg-pill { background-color: #e0f2fe; color: #0ea5e9; } 
         .bg-card-header { background-color: #f8fafc; }
@@ -110,6 +118,9 @@
     </div>
 
     <script>
+        // ---------------------------------------------------------
+        // 1. DATA POPULATION LOGIC (Existing)
+        // ---------------------------------------------------------
         const params = new URLSearchParams(window.location.search);
 
         function setText(id, value) {
@@ -143,6 +154,34 @@
         const bagHand = params.get('baggageHand');
         if(bagCheck) setText('baggage-checkin', `${bagCheck}KG`);
         if(bagHand) setText('baggage-hand', `Up to ${bagHand}KG`);
+
+        // ---------------------------------------------------------
+        // 2. AUTO-HEIGHT RESIZE LOGIC (For Payment Page)
+        // ---------------------------------------------------------
+        function sendHeight() {
+            // Get the total scrollable height of the body
+            // We use '1' as a buffer or margins if needed, but scrollHeight is standard
+            const height = document.body.scrollHeight;
+            
+            // Send message to parent
+            window.parent.postMessage({ 
+                type: 'resize', // You can check for this 'type' in your parent JS
+                height: height 
+            }, '*');
+        }
+
+        // Fire on initial load
+        window.addEventListener('load', sendHeight);
+        
+        // Fire on window resize (e.g. orientation change)
+        window.addEventListener('resize', sendHeight);
+
+        // Fire whenever DOM content changes size (Robust method)
+        const resizeObserver = new ResizeObserver(() => {
+            sendHeight();
+        });
+        resizeObserver.observe(document.body);
+
     </script>
 </body>
 </html>
