@@ -246,10 +246,10 @@ const SHARED_ADD_ON_RULES = [
 ];
 
 const REWARD_RULES = [{
-  "conversion_ratio": 1, "flow_type": "BURN", "max_redeemable_points": 50,
-  "min_redeemable_points": 50, "payment_method": "CAPILLARY_REWARD",
-  "reward_buckets": [{ "cash_eq": "50", "id": "6fae5307", "points": "50" }],
-  "user_balance": 50
+  "conversion_ratio": 1, "flow_type": "BURN", "max_redeemable_points": 2500,
+  "min_redeemable_points": 2500, "payment_method": "CAPILLARY_REWARD",
+  "reward_buckets": [{ "cash_eq": "2500", "id": "6fae5307", "points": "2500" }],
+  "user_balance": 2500
 }];
 
 const PAYMENT_RULES_SIN_MNL = {
@@ -307,7 +307,7 @@ const FLIGHT_ROUTES = {
 
   "IST_IBZ": { amount: "27000", currency: "INR", mti: MTI_IST_IBZ, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_SUG, addOnRules: SHARED_ADD_ON_RULES ,integrity: true,refId : "FLIGHT", isEmi : true, udf1: "Riyadh",udf2: "Manila",udf3: "mWeb", customerId: "Test123"},
   "ATH_IBZ": { amount: "142", currency: "EUR", mti: MTI_MEL_CEB, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_SUG, addOnRules: SHARED_ADD_ON_RULES , integrity: false, riskProvider: "JUSPAYFRM",refId : "FLIGHT", udf1: "Melbourne",udf2: "Cebu",udf3: "Android", customerId: "Test123"},
-  "MAD_IBZ": { amount: "60", currency: "EUR", mti: MTI_ENI_MNL, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_SUG, addOnRules: SHARED_ADD_ON_RULES, integrity: true ,refId : "FLIGHT", udf1: "El Nido",udf2: "Manila",udf3: "Desktop", customerId: "Test123"},
+  "MAD_IBZ": { amount: "4000", currency: "EUR", mti: MTI_ENI_MNL, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_SUG, addOnRules: SHARED_ADD_ON_RULES, integrity: true ,refId : "FLIGHT", udf1: "El Nido",udf2: "Manila",udf3: "Desktop", customerId: "Test123"},
   "IST_BRU": { amount: "250", currency: "USD", mti: MTI_PVG_MEL, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_KUL, addOnRules: SHARED_ADD_ON_RULES, integrity: true,refId : "FLIGHT" , udf1: "Shanghai",udf2: "Melbourne",udf3: "iOS", customerId: "Test123"},
   "CEB_MNL": { amount: "18000", currency: "VND", mti: MTI_CEB_MNL, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_SUG, addOnRules: [], integrity: true,refId : "FLIGHT" , udf1: "Cebu",udf2: "Manila",udf3: "Android", customerId: "Test123"},
   "SCL_BCN": { amount: "5000", currency: "EUR", mti: MTI_CEB_MNL, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_SUG, addOnRules: [], integrity: true,refId : "FLIGHT" , udf1: "Cebu",udf2: "El Nido",udf3: "Android", customerId: "Test456"},
