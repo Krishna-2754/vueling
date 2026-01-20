@@ -312,7 +312,7 @@ const FLIGHT_ROUTES = {
   "CEB_MNL": { amount: "18000", currency: "VND", mti: MTI_CEB_MNL, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_SUG, addOnRules: [], integrity: true,refId : "FLIGHT" , udf1: "Cebu",udf2: "Manila",udf3: "Android", customerId: "Test123"},
   "SCL_BCN": { amount: "5000", currency: "EUR", mti: MTI_CEB_MNL, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_SUG, addOnRules: [], integrity: true,refId : "FLIGHT" , udf1: "Cebu",udf2: "El Nido",udf3: "Android", customerId: "Test456"},
   "BCN_CPH": { amount: "250", currency: "USD", mti: MTI_BCN_GEN, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_SUG, addOnRules: SHARED_ADD_ON_RULES, integrity: true,refId : "FLIGHT" , udf1: "Cebu",udf2: "Laoag",udf3: "Android", customerId: "Test123", paymentRules: PAYMENT_RULES_SIN_MNL},
-  "IBZ_ATH": { amount: "142", currency: "EUR", mti: MTI_MEL_CEB, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_SUG, addOnRules: SHARED_ADD_ON_RULES , integrity: false, riskProvider: "JUSPAYFRM",refId : "FLIGHT", udf1: "Melbourne",udf2: "Cebu",udf3: "Android", customerId: "Test123"},
+  "IBZ_ATH": { amount: "5500", currency: "EUR", mti: MTI_MEL_CEB, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_SUG, addOnRules: SHARED_ADD_ON_RULES , integrity: false, riskProvider: "JUSPAYFRM",refId : "FLIGHT", udf1: "Melbourne",udf2: "Cebu",udf3: "Android", customerId: "Test123"},
 };
 
 // --- FULFILLMENT ENDPOINT ---
