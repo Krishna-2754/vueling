@@ -307,7 +307,7 @@ const FLIGHT_ROUTES = {
 
   "IST_IBZ": { amount: "27000", currency: "INR", mti: MTI_IST_IBZ, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_SUG, addOnRules: SHARED_ADD_ON_RULES ,integrity: true,refId : "FLIGHT", isEmi : true, udf1: "Riyadh",udf2: "Manila",udf3: "mWeb", customerId: "Test123"},
   "ATH_IBZ": { amount: "142", currency: "EUR", mti: MTI_MEL_CEB, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_SUG, addOnRules: SHARED_ADD_ON_RULES , integrity: false, riskProvider: "JUSPAYFRM",refId : "FLIGHT", udf1: "Melbourne",udf2: "Cebu",udf3: "Android", customerId: "Test123"},
-  "MAD_IBZ": { amount: "4000", currency: "EUR", mti: MTI_ENI_MNL, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_SUG, addOnRules: SHARED_ADD_ON_RULES, integrity: true ,refId : "FLIGHT", udf1: "El Nido",udf2: "Manila",udf3: "Desktop", customerId: "Test123456",capCustId: "000014464"},
+  "MAD_IBZ": { amount: "4000", currency: "EUR", mti: MTI_ENI_MNL, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_SUG, addOnRules: SHARED_ADD_ON_RULES, integrity: true ,refId : "FLIGHT", udf1: "El Nido",udf2: "Manila",udf3: "Desktop", customerId: "TestVue123",capCustId: "000014464"},
   "IST_BRU": { amount: "250", currency: "USD", mti: MTI_PVG_MEL, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_KUL, addOnRules: SHARED_ADD_ON_RULES, integrity: false,refId : "FLIGHT" , udf1: "Shanghai",udf2: "Melbourne",udf3: "iOS", customerId: "Test789"},
   "CEB_MNL": { amount: "18000", currency: "VND", mti: MTI_CEB_MNL, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_SUG, addOnRules: [], integrity: true,refId : "FLIGHT" , udf1: "Cebu",udf2: "Manila",udf3: "Android", customerId: "Test123"},
   "SCL_BCN": { amount: "5500", currency: "EUR", mti: MTI_CEB_MNL, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_SUG, addOnRules: [], integrity: true,refId : "FLIGHT" , udf1: "Cebu",udf2: "El Nido",udf3: "Android", customerId: "Test456"},
@@ -585,7 +585,7 @@ app.post('/create-session', async (req, res) => {
             "currency": scenario.currency,
             "customer_id": scenario.customerId,
             "customer_email": "test@gmail.com",
-            "customer_phone": "7093125824",
+            "customer_phone": "8697140569",
             "mobile_country_code": "91",
             "payment_page_client_id": "vueling",
             "action": "paymentPage",
