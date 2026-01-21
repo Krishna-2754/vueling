@@ -245,6 +245,12 @@ const SHARED_ADD_ON_RULES = [
   { "payment_method_type": "CARD", "fee": "20.0", "fee_description": "Convienence Fees", "applicable_per_unit": true }
 ];
 
+const SHARED_ADD_ON_RULES2 = [
+  { "payment_method_type": "MERCHANT_CONTAINER", "fee": "25.0", "fee_description": "Convenience fees" },
+  { "payment_method_type": "NB", "fee": "40.0", "fee_description": "Convenience fees" },
+  { "payment_method_type": "UPI", "fee": "30.0", "fee_description": "Convenience fees" },
+];
+
 const REWARD_RULES = [{
   "conversion_ratio": 1, "flow_type": "BURN", "max_redeemable_points": 2500,
   "min_redeemable_points": 2500, "payment_method": "CAPILLARY_REWARD",
@@ -303,7 +309,7 @@ const FLIGHT_ROUTES = {
   "BCN_LEI": { amount: "190", currency: "EUR", mti: MTI_BCN_LEI, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_SUG, addOnRules: SHARED_ADD_ON_RULES, capCustId: "000014464",integrity: true,refId : "FLIGHT" , udf1: "Barcelona",udf2: "Almeria",udf3: "Android", baddress: "PH", customerId: "Test123"},
   "AMS_BCN": { amount: "95", currency: "EUR", mti: MTI_AMS_BCN, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_LAO, addOnRules: [] , paymentRules: PAYMENT_RULES_SIN_MNL, integrity: true,refId : "FLIGHT", udf1: "Amsterdam",udf2: "Barcelona",udf3: "mWeb", customerId: "Test123", riskProvider: "JUSPAYFRM"},
   "BCN_CAI": { amount: "225", currency: "USD", mti: MTI_BCN_CAI, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_KUL, addOnRules: SHARED_ADD_ON_RULES ,cardinalRef: "auth_cardinal", baddress: "US", integrity: true, refId : "AUXILIARY", udf1: "Barcelona",udf2: "Cario",udf3: "iOS", customerId: "Test123"},
-  "BCN_GVA": { amount: "340", currency: "USD", mti: MTI_BCN_GEN, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_SUG, addOnRules: SHARED_ADD_ON_RULES, udf: "AUXILLARY" , baddress: "SG", paymentRules: PAYMENT_RULES_SIN_MNL, integrity: true,refId : "FLIGHT", udf1: "Barcelona",udf2: "Geneva",udf3: "Desktop", customerId: "Test123", autoCapture: true},
+  "BCN_GVA": { amount: "340", currency: "USD", mti: MTI_BCN_GEN, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_SUG, addOnRules: SHARED_ADD_ON_RULES2, udf: "AUXILLARY" , baddress: "SG", paymentRules: PAYMENT_RULES_SIN_MNL, integrity: true,refId : "FLIGHT", udf1: "Barcelona",udf2: "Geneva",udf3: "Desktop", customerId: "Test123", autoCapture: true},
 
   "IST_IBZ": { amount: "27000", currency: "INR", mti: MTI_IST_IBZ, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_SUG, addOnRules: SHARED_ADD_ON_RULES ,integrity: true,refId : "FLIGHT", isEmi : true, udf1: "Istanbul",udf2: "Ibiza",udf3: "mWeb", customerId: "Test123"},
   "ATH_IBZ": { amount: "142", currency: "EUR", mti: MTI_MEL_CEB, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_SUG, addOnRules: SHARED_ADD_ON_RULES , integrity: false, riskProvider: "JUSPAYFRM",refId : "FLIGHT", udf1: "Athens",udf2: "Ibiza",udf3: "Android", customerId: "Test123"},
