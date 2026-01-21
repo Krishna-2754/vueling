@@ -627,6 +627,8 @@ app.post('/create-session', async (req, res) => {
         if (scenario.autoCapture) payload["metadata.txns.auto_capture"] = "false";
         if (scenario.capCustId) payload["metadata.CAPILLARY:customer_id"] = scenario.capCustId;
         if (scenario.isEmi) payload["is_emi"] = scenario.isEmi;
+        if (routeKey === "BCN_BIO") payload["shipping_address_postal_code"] = "560095";
+        if (routeKey === "BCN_BIO") payload["shipping_address_country_code_iso"] = "IND";
     }
 
     const response = await axios.post('https://sandbox.juspay.in/session', payload, {
